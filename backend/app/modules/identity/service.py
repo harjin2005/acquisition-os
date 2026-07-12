@@ -47,7 +47,18 @@ class IdentityService:
         org_id: uuid.UUID | None = None,
         workos_org_id: str | None = None,
     ) -> Organization:
-        existing = self.db.execute(select(Organization).where(Organization.slug == slug)).scalar_one_or_none()
+        # Slug uniqueness is a *global* invariant, not a tenant-scoped one.
+        # The current session runs inside a freshly-minted tenancy where RLS
+        # would blind us to rows owned by other orgs, so we consult the
+        # service role (RLS-bypass) for this single check. This is the
+        # sanctioned use of `service_role_session` from a tenant router
+        # (see .claude/rules/backend.md).
+        from app.core.tenancy import service_role_session
+
+        with service_role_session() as global_db:
+            existing = global_db.execute(
+                select(Organization).where(Organization.slug == slug)
+            ).scalar_one_or_none()
         if existing is not None:
             raise DomainError(f"slug {slug!r} is already taken", code="slug_conflict")
 

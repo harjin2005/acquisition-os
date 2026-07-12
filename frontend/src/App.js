@@ -146,7 +146,7 @@ function Bootstrap() {
             data-testid="bootstrap-slug-input"
             className="input"
             value={slug}
-            pattern="^[a-z0-9-]+$"
+            pattern="^[-a-z0-9]+$"
             onChange={(e) => setSlug(e.target.value)}
             required
           />

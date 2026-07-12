@@ -60,6 +60,20 @@ def test_bootstrap_and_list(client: TestClient, clean_db):
     assert len(r2.json()) == 1
 
 
+def test_bootstrap_slug_idempotency_returns_409(client: TestClient, clean_db):
+    """Regression: RCA — the slug pre-check must use the RLS-bypass service
+    role because slug is a global-namespace invariant. Reposting the same
+    slug must return 409 slug_conflict, never 500."""
+    slug = "dup-slug-co"
+    r1 = client.post("/api/v1/identity/orgs", json={"name": "First", "slug": slug})
+    assert r1.status_code == 201
+
+    r2 = client.post("/api/v1/identity/orgs", json={"name": "Second", "slug": slug})
+    assert r2.status_code == 409, r2.text
+    body = r2.json()
+    assert body["error"] == "slug_conflict"
+
+
 def test_cross_org_api_is_denied(client: TestClient, two_orgs):
     """AC-4: two orgs, cross-org API access denied by RLS."""
     org_a, org_b = two_orgs
