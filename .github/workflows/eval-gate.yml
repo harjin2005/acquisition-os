@@ -1,0 +1,46 @@
+name: eval-gate
+
+# Merge-blocking on any PR that touches agent code paths.
+# See DOC-131 §1 and .claude/skills/new-agent-eval.md.
+on:
+  pull_request:
+    paths:
+      - 'backend/app/agents/**'
+      - 'backend/app/agents/evals/**'
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install deps
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Determine changed agents
+        id: agents
+        run: |
+          changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '^backend/app/agents/[^/]+/' | cut -d/ -f4 | sort -u || true)
+          echo "list=$changed" >> $GITHUB_OUTPUT
+      - name: Run eval suite for each changed agent
+        if: steps.agents.outputs.list != ''
+        run: |
+          set -e
+          for agent in ${{ steps.agents.outputs.list }}; do
+            if [ -f "backend/app/agents/evals/manifests/${agent}.yaml" ]; then
+              echo "== eval: $agent =="
+              bash scripts/eval-run.sh "$agent"
+            else
+              echo "::error::agent '$agent' changed but no eval manifest found. See .claude/skills/new-agent-eval.md"
+              exit 1
+            fi
+          done
+      - name: No-op if no agents changed
+        if: steps.agents.outputs.list == ''
+        run: echo "No agent paths touched; skipping evals."

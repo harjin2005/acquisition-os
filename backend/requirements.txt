@@ -1,0 +1,44 @@
+# AcquisitionOS backend — Sprint 1 dependencies.
+# Boundaries: keep this file the single source of Python deps; new deps must be added
+# via the OSS table (DOC-130 §10) and reflected here in a PR.
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.12.5
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+
+# Database (Postgres 15 in dev per ADR-EMERGENT-001; Postgres 16 in prod per DOC-130 §5)
+SQLAlchemy==2.0.36
+alembic==1.14.0
+psycopg[binary]==3.2.3
+psycopg2-binary==2.9.10
+
+# AuthN/AuthZ
+python-jose[cryptography]==3.3.0
+PyJWT==2.13.0
+passlib[bcrypt]==1.7.4
+
+# WorkOS (Sprint 1: SDK wired, mock mode default; keys required for live)
+workos==9.1.0
+
+# Observability
+structlog==24.4.0
+
+# HTTP / clients
+httpx==0.28.1
+
+# MongoDB kept for Emergent runtime coexistence per ADR-EMERGENT-001
+motor==3.6.0
+pymongo==4.9.2
+
+# Testing (Sprint 1 tier: unit + RLS adversarial + api contract skeleton)
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+factory-boy==3.3.1
+httpx==0.28.1
+
+# Static analysis (import-linter enforces module boundary graph per DOC-130 §3)
+import-linter==2.1
+ruff==0.8.4
+mypy==1.14.0

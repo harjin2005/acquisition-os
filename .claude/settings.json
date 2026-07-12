@@ -1,9 +1,41 @@
 {
+  "$schema": "https://code.claude.com/schemas/settings.json",
   "permissions": {
     "allow": [
+      "Bash(pytest*)",
+      "Bash(ruff*)",
+      "Bash(mypy*)",
+      "Bash(alembic upgrade head*)",
+      "Bash(alembic downgrade*)",
+      "Bash(alembic revision*)",
+      "Bash(yarn*)",
+      "Bash(npm test*)",
+      "Bash(lint-imports*)",
+      "Bash(supervisorctl restart *)",
       "Bash(git init *)",
       "Bash(git branch *)",
-      "Bash(git ls-remote *)"
+      "Bash(git ls-remote *)",
+      "Read(**)",
+      "Write(backend/app/**)",
+      "Write(backend/tests/**)",
+      "Write(frontend/src/**)",
+      "Write(docs/**)",
+      "Write(scripts/**)",
+      "Write(.github/workflows/**)"
+    ],
+    "deny": [
+      "Write(.env)",
+      "Write(backend/.env)",
+      "Write(infra/terraform/envs/prod/**)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": {
+      "Bash": [".claude/hooks/preflight.sh"]
+    },
+    "PostToolUse": {
+      "Write": [".claude/hooks/format-lint.sh"]
+    },
+    "Stop": [".claude/hooks/fast-tests.sh"]
   }
 }

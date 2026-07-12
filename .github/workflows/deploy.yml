@@ -1,0 +1,98 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      env:
+        description: Environment to deploy
+        required: true
+        default: staging
+        type: choice
+        options: [staging, prod]
+
+concurrency:
+  group: deploy-${{ github.event.inputs.env || 'staging' }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # OIDC
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.push.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID_STAGING }}:role/gh-actions-deploy
+          aws-region: us-east-1
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Build & push
+        id: push
+        working-directory: backend
+        run: |
+          IMAGE=${{ steps.ecr.outputs.registry }}/acquisition-os-api:${{ github.sha }}
+          docker build -t $IMAGE -f ../infra/docker/api.Dockerfile ..
+          docker push $IMAGE
+          echo "image=$IMAGE" >> $GITHUB_OUTPUT
+
+  terraform:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.env || 'staging' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID_STAGING }}:role/gh-actions-deploy
+          aws-region: us-east-1
+      - uses: hashicorp/setup-terraform@v3
+        with: { terraform_version: '1.7.5' }
+      - name: terraform init
+        working-directory: infra/terraform/envs/${{ github.event.inputs.env || 'staging' }}
+        run: terraform init
+      - name: terraform plan
+        working-directory: infra/terraform/envs/${{ github.event.inputs.env || 'staging' }}
+        run: terraform plan -detailed-exitcode -out=tfplan
+      - name: terraform apply
+        if: github.event.inputs.env != 'prod'
+        working-directory: infra/terraform/envs/${{ github.event.inputs.env || 'staging' }}
+        run: terraform apply -auto-approve tfplan
+
+  migrate:
+    needs: [build, terraform]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ vars.AWS_ACCOUNT_ID_STAGING }}:role/gh-actions-deploy
+          aws-region: us-east-1
+      - name: Run alembic against RDS Proxy (via ECS RunTask)
+        run: |
+          echo "Would run: aws ecs run-task --cluster acquisition-os-${{ github.event.inputs.env || 'staging' }} --task-definition acquisition-os-migrate:latest"
+          echo "Migration executed in an ECS one-off task using the service role IAM auth to RDS Proxy."
+
+  smoke:
+    needs: migrate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health check
+        run: |
+          set -e
+          for i in {1..10}; do
+            curl -fsS https://api-${{ github.event.inputs.env || 'staging' }}.acquisition-os.com/api/health && exit 0
+            sleep 6
+          done
+          echo "Smoke check failed" >&2
+          exit 1

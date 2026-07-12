@@ -1,0 +1,66 @@
+{
+  "summary": "Tested Sprint 1 (AC1-AC6) end-to-end. Verified live public URL via new pytest e2e suite plus ran the existing pytest suite (identity API, RLS adversarial, RBAC matrix, import-linter). Frontend Overview, Bootstrap, Console + invite flow tested with Playwright. 51/51 existing tests green; 11/12 new live-URL e2e tests green. One backend bug: bootstrap slug-idempotency returns 500 instead of the required 409 slug_conflict because the pre-check SELECT runs under the freshly minted tenancy and RLS blinds it, so control falls through to the Postgres UNIQUE constraint (IntegrityError).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/v1/identity/orgs (bootstrap)",
+        "issue": "Slug idempotency returns 500 (psycopg2 UniqueViolation on core.organization.uq_organization_slug) instead of the specified 409 slug_conflict. Root cause: IdentityService.create_organization runs `select(Organization).where(slug=...)` inside `tenancy(new_org_id)`, so RLS filters out the row that already exists in another tenant. The service then attempts INSERT which trips the DB unique constraint. Fix: perform the slug lookup via service_role_session() (RLS-bypass) OR catch IntegrityError and raise DomainError('slug_conflict').",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Bootstrap slug input",
+        "issue": "Chrome console warning: `Pattern attribute value ^[a-z0-9-]+$ is not a valid regular expression: Invalid character class`. In HTML `pattern` (Unicode `/v` mode) an unescaped `-` inside a char class is now flagged. Not blocking submission but noisy; escape as `^[a-z0-9\\-]+$` or move `-` to the start/end: `^[-a-z0-9]+$`.",
+        "selector": "[data-testid=\"bootstrap-slug-input\"]",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Overview / global",
+        "issues": [
+          "React Router v6 future-flag warnings (v7_startTransition, v7_relativeSplatPath) in console — cosmetic."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/api/test_public_url_e2e.py",
+    "/app/backend/tests/api/test_identity_api.py",
+    "/app/backend/tests/rls/test_cross_tenant_isolation.py",
+    "/app/backend/tests/rls/test_rbac_matrix.py",
+    "/app/backend/tests/integration/test_import_linter.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/pytest/public_url_e2e.xml"
+  ],
+  "action_items": [
+    "Fix bootstrap slug idempotency to return 409 slug_conflict (do the slug pre-check via service_role_session, or wrap create_organization in try/except IntegrityError -> DomainError('slug_conflict')). Cover with a test that reposts the same slug and asserts 409.",
+    "(Optional) Fix slug input `pattern` attribute so Chrome does not emit the `Invalid character class` warning — escape `-` or move it to boundary."
+  ],
+  "critical_code_review_comments": [
+    "Load-bearing bug: `IdentityService.create_organization` performs the slug-duplicate check inside the caller's tenancy. Under RLS this is effectively blind for any slug held by a different tenant — the DomainError branch is unreachable in practice. The 409 contract in the router docstring is a lie until this is fixed.",
+    "`app/modules/identity/router.py::bootstrap_org` wraps the whole thing in `tenancy(new_org_id)` before the org even exists. That works because `tenancy()` only sets a GUC, but it is a subtle pattern; a short comment noting that the SELECT check is RLS-blind (once fixed) would help future readers.",
+    "`app/core/auth.py::_verify_workos_jwt` — `_jwks_cache` is module-global with no TTL/rotation logic. Fine for Sprint 1 skeleton; flag for Sprint 2 hardening.",
+    "`app/core/errors.py` install_error_handlers only registers a handler for DomainError. IntegrityError / ValidationError / unhandled exceptions fall through to FastAPI's default 500 with `Internal Server Error` and no `error` code — masks bugs like the slug case above. Consider a catch-all mapper.",
+    "`app/frontend/src/App.js` reads `window.localStorage.getItem('aos.session')` only once via `useMemo`. If the user bootstraps and then opens Console in a different tab, the session is picked up on load, so fine — but a stale token has no refresh path (dev-only, acceptable).",
+    "`api.js` returns `throw new Error(status + text)` — UI displays the full raw HTTP body in the invite/bootstrap error card. Fine for Sprint 1, but worth surfacing structured `{error, message}` in future sprints."
+  ],
+  "updated_files": [
+    "/app/backend/tests/api/test_public_url_e2e.py (new)"
+  ],
+  "success_rate": {
+    "backend": "62/63 (98%) — 51/51 existing + 11/12 new; 1 real bug",
+    "frontend": "100% — Overview, Bootstrap→Console redirect, member list, invite creation all work"
+  },
+  "test_credentials": "None required. Sprint 1 dev mode: WORKOS_MOCK_MODE=true. Frontend mints `dev.<b64json>` bearer tokens via mintDevToken() in /app/frontend/src/lib/api.js. Backend accepts them in /app/backend/app/core/auth.py::_decode_mock. No /app/memory/test_credentials.md exists (not applicable for Sprint 1).",
+  "seed_data_creation": "Test suite creates ephemeral orgs with UUID-suffixed slugs (`aos-a-<hex>`, `aos-b-<hex>`, `ui-test-<epoch>`) and one property per org via /api/v1/ontology/properties. No cleanup fixture on the live URL run (Sprint 1 has no delete-org endpoint by design); rows are isolated by unique slugs and org_ids so re-runs do not collide. The in-process pytest suite uses the `clean_db` fixture which TRUNCATEs core.organization/member/invite and licensed.property between tests.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "The only outstanding backend defect is slug idempotency returning 500. After main agent fixes it, re-run `pytest /app/backend/tests/api/test_public_url_e2e.py::test_bootstrap_slug_idempotency_returns_409 -v` against the live URL. All 51 in-process tests already pass. Frontend Playwright flow has no known blockers. Data-testids in the live app match the spec (nav-*, hero, ac-ac1..ac-ac6, bootstrap-*, console-hero, member-<id>, invite-*).",
+  "rca of the issue": "Bootstrap 500 on duplicate slug: `IdentityService.create_organization` (app/modules/identity/service.py:50) executes `select(Organization).where(Organization.slug==slug)` under a session bound to a brand-new `tenancy(new_org_id)` context (router line 50). The RLS policy on core.organization (from 0001_baseline.py) restricts SELECT to `org_id = current_setting('app.org_id')::uuid`. Since the new org_id has never been persisted, the SELECT returns None regardless of whether the slug is already taken by another tenant. The DomainError('slug_conflict', 409) branch is dead code in practice. Execution proceeds to INSERT, which trips `uq_organization_slug` UNIQUE constraint at the DB layer, raising `sqlalchemy.exc.IntegrityError`, which is not mapped to a domain error and surfaces as bare FastAPI 500 `Internal Server Error`. Reproduction: `curl -X POST $BASE/api/v1/identity/orgs -d '{\"name\":\"X\",\"slug\":\"design-partners-co\"}'` twice with the same slug -> first 201, second 500. Mitigation: (a) preferred — perform the slug uniqueness pre-check via `service_role_session()` so RLS is bypassed for this single global-namespace query; (b) alternative — add `except IntegrityError` around the INSERT and re-raise `DomainError('slug already taken', code='slug_conflict')` with status_code=409."
+}

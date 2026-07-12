@@ -1,0 +1,50 @@
+name: sdk-publish
+
+# Regenerate the TS SDK + zod contracts from the OpenAPI spec whenever the
+# API surface changes on main. Merge-blocking on drift via a companion PR
+# opened by the workflow.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/app/api/**'
+      - 'backend/app/modules/**/router.py'
+      - 'backend/app/modules/**/schemas.py'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Install
+        run: |
+          pip install -r backend/requirements.txt
+          npm install -g openapi-typescript openapi-zod-client
+      - name: Export OpenAPI spec
+        working-directory: backend
+        run: python -c "import json; from app.main import app; open('../packages/sdk-ts/openapi.json','w').write(json.dumps(app.openapi()))"
+      - name: Regenerate TS types
+        run: openapi-typescript packages/sdk-ts/openapi.json -o packages/sdk-ts/src/types.ts
+      - name: Regenerate zod schemas
+        run: openapi-zod-client packages/sdk-ts/openapi.json -o packages/contracts/src/index.ts
+      - name: Open PR on drift
+        run: |
+          if [ -n "$(git status --porcelain packages/)" ]; then
+            git config user.name "sdk-bot"
+            git config user.email "sdk-bot@acquisition-os.local"
+            git checkout -b sdk-drift-${{ github.sha }}
+            git add packages/
+            git commit -m "chore(sdk): regenerate TS SDK + contracts"
+            git push origin HEAD
+            gh pr create --fill --base main --title "chore(sdk): regenerate TS SDK" --body "Automated regeneration triggered by ${{ github.sha }}"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

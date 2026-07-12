@@ -1,0 +1,62 @@
+[importlinter]
+root_package = app
+include_external_packages = True
+
+# ============================================================================
+# DOC-130 §3 boundary graph (enforced in CI as `.github/workflows/ci.yml`
+# `import-linter` step). Prose is advisory; this file is law.
+#
+#   api  →  modules  →  {ontology, db}
+#   agents/*         →  tool registry (agents.platform.tools) only
+#   modules.campaigns.send_service   —  the only messaging egress
+#   modules.campaigns.suppression    —  the only writer of suppression state
+# ============================================================================
+
+# ----- Layered direction of dependency -------------------------------------
+[importlinter:contract:modules-cannot-import-api]
+name = Modules cannot depend on the API layer
+type = forbidden
+source_modules =
+    app.modules
+forbidden_modules =
+    app.api
+
+[importlinter:contract:db-cannot-import-modules-or-api]
+name = DB layer cannot depend on modules or API
+type = forbidden
+source_modules =
+    app.db
+forbidden_modules =
+    app.modules
+    app.api
+ignore_imports =
+    # `db.registry` intentionally imports module models so Alembic's
+    # autogenerate sees every mapped class. This is the sanctioned exception.
+    app.db.registry -> app.modules.identity.models
+    app.db.registry -> app.modules.ontology.models
+
+# ----- Cross-module encapsulation ------------------------------------------
+[importlinter:contract:cross-module-models]
+name = Modules must not import other modules' models
+type = forbidden
+source_modules =
+    app.modules.identity.router
+    app.modules.identity.service
+    app.modules.ontology.router
+    app.modules.ontology.service
+forbidden_modules =
+    # A module may import ITS OWN models but never a sibling's.
+    # Add sibling paths here as modules land (E2+).
+
+# ----- Provider SDK isolation ---------------------------------------------
+[importlinter:contract:no-provider-sdks-outside-gateway]
+name = Provider SDKs only inside app.agents.platform
+type = forbidden
+source_modules =
+    app.modules
+    app.api
+forbidden_modules =
+    openai
+    anthropic
+    litellm
+    twilio
