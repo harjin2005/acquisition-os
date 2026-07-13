@@ -5,3 +5,12 @@ credentials.json
 *.pem
 *.key
 .credentials
+
+# build artifacts / dependency trees — never commit, always reproducible from lockfiles
+node_modules/
+frontend/build/
+__pycache__/
+*.pyc
+.venv/
+.venv-*/
+*.egg-info/

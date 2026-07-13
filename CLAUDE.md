@@ -1,62 +1,47 @@
-# CLAUDE.md — AcquisitionOS repo memory (KEEP UNDER ~150 LINES)
+# CLAUDE.md — AcquisitionOS (read me first, every session)
 
-**Pruned monthly.** Prose is advisory — hooks and CI are law (DOC-131 §1).
+You are helping build **AcquisitionOS**: a decision-quality software platform for small
+US real-estate investment teams. The full plans already exist in `/docs`. Your job is to
+BUILD from those plans — not to redesign them.
 
-## Stack (five lines)
+## THE 5 RULES YOU NEVER BREAK
+1. **Small steps.** Do one task at a time. Never rewrite files you weren't asked to touch.
+2. **When unsure, STOP and ask.** Guessing wastes tokens and breaks things. See `.claude/STOP_RULES.md`.
+3. **Don't re-read everything.** The docs are large. Read only the specific doc section a task
+   needs (paths below). Re-reading the whole project every task wastes tokens — don't.
+4. **Prove it works.** Show test output or a run result. Never say "done" without evidence.
+5. **Stay in your lane.** Each session has ONE role and ONE folder area (see `.claude/sessions/`).
+   Do not edit outside your assigned area.
 
-- Backend: FastAPI + SQLAlchemy 2.0 + Alembic; Postgres 16 (prod) / 15 (dev, ADR-EMERGENT-001); Temporal Cloud (E9+); LiteLLM gateway; WorkOS auth.
-- Frontend: Next.js/React + TanStack Query + Tailwind + Radix; generated TS SDK only.
-- Data: three logical schemas (`licensed`, `core`, `derived`) + `audit`, `events`; RLS on every tenant table; `SET LOCAL app.org_id` inside every transaction.
-- Infra: AWS ECS Fargate, RDS Postgres, ElastiCache Valkey, Meilisearch Cloud, S3, SES + Twilio-class SMS. Terraform. GitHub Actions.
-- Ops team: 1–5 engineers + founder. Boring-technology bias throughout.
+## HOW WE WORK (the loop)
+- Before starting: read `.claude/CURRENT_STATE.md` (what's done) and `.claude/NEXT_TASK.md` (your job).
+- Plan first for anything bigger than one file. Show the plan. Wait for "go".
+- After finishing: update `.claude/CURRENT_STATE.md`, and run the `end-of-session` skill so
+  nothing is forgotten between sessions.
+- Every change goes through a Pull Request. A human (the founder) approves every merge.
 
-## Boundary graph (DOC-130 §3, enforced by import-linter)
+## THE NON-NEGOTIABLES (from our design docs — do not violate)
+- **Naming:** use the exact entity names from `docs/product/02-glossary.md` (Property, Owner,
+  Contact, Lead, Deal — these are five SEPARATE things, never merged).
+- **Data safety:** every database table has an `org_id` and row-level security. Never write code
+  that could let one customer see another's data.
+- **Compliance is sacred:** anything touching outreach (SMS/email), consent, or suppression is
+  high-risk. STOP and get founder review. Never auto-send messages.
+- **Money & data costs:** we pay per record for property data and per AI call. Don't write loops
+  that fetch or call in bulk without asking.
 
-```
-api → modules → {ontology} → db
-agents/* → tool registry only
-campaigns.send_service is the ONLY messaging-provider egress
-campaigns.suppression is the ONLY writer of suppression state
-core.tenancy.service_role_session is ONLY importable from ingestion, admin
-```
+## WHERE THINGS ARE (read only what your task needs)
+- Vision & scope: `docs/product/20-company-blueprint.md`
+- What to build (features): `docs/product/21-prd-ux-blueprint.md`
+- How to build it (tech): `docs/product/30-engineering-handbook.md`
+- Step-by-step plan: `docs/product/31-execution-plan.md`  ← Sprint 1 is here
+- Decisions already made: `docs/product/01-decision-log.md`
+- Word meanings: `docs/product/02-glossary.md`
+- Live status snapshot: `docs/product/MASTER_CONTEXT.md`
 
-## The five non-negotiables
-
-1. **Ontology naming is law** (DOC-002). Every table/field name must match the glossary; CI greps migrations.
-2. **Module import rules** — modules communicate via service interfaces or domain events. Never import another module's models. Import-linter blocks the merge.
-3. **Expand → backfill → contract** for every migration on a live table. Rollback note required in the PR.
-4. **Tests ship with code.** Modules touched by a PR must have their fast tests pass in the Stop hook.
-5. **No new deps without an entry in the OSS table** (DOC-130 §10).
-
-## Where things live (`@`-paths only, don't inline docs)
-
-- Company docs: @docs/product/
-- Architecture Decision Records: @docs/adr/
-- Per-module README: @docs/modules/<module>.md
-- Rules with path scopes: @.claude/rules/
-- Skills (repeatable playbooks): @.claude/skills/
-- Reviewer + auditor subagents: @.claude/agents/
-
-## Working method (DOC-131 §1.2)
-
-- Plan mode first for any change touching campaigns / underwriting / privacy / >1 file.
-- Vertical slices (schema → service → API → UI → tests) over horizontal layers.
-- Show evidence: test output, command results. Assertions are not evidence.
-- After two failed correction loops: `/clear`, rewrite the prompt.
-- One task = one branch = one PR. Human reviews every PR.
-
-## Definition of Done
-
-Acceptance criteria met · tests written and passing · module README updated if interfaces changed · migration follows expand-contract · eval gate green if agent paths touched · no new dep without OSS-table entry · deployed to staging and smoke-checked.
-
-## Never
-
-- Redesign the product, ontology, ADR, or workflows without an ADR PR.
-- Insert data manually into prod tables. Use migrations.
-- Add a provider SDK outside the LiteLLM gateway (E10 rule).
-- Ship an agent path change without the eval gate.
-- Loosen an RLS policy to "fix" a test. Open an ADR instead.
-
-## Sprint 1 pointer
-
-Currently building Sprint 1 only. Scope: DOC-131 §2 items 1-6. Do not begin Sprint 2.
+## IF YOU ARE ABOUT TO...
+- ...start coding a feature → check it's in Sprint 1 (`31-execution-plan.md`). If not, STOP.
+- ...create a database change → use the `.claude/skills/new-migration` checklist. Don't freehand it.
+- ...add a new tool/library/plugin → STOP. See `.claude/TOOLS.md` for what's approved and ask first.
+- ...touch outreach/consent/suppression code → STOP. Founder must review.
+- ...feel unsure what the task means → STOP and ask ONE clear question.
