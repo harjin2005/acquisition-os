@@ -19,6 +19,9 @@ BUILD from those plans — not to redesign them.
 - After finishing: update `.claude/CURRENT_STATE.md`, and run the `end-of-session` skill so
   nothing is forgotten between sessions.
 - Every change goes through a Pull Request. A human (the founder) approves every merge.
+- `.claude/PROGRESS.md` is the founder's at-a-glance tracker (epic/sprint status vs the full
+  18-sprint plan). Only the Architect session updates it, and only when a status actually
+  changes — not every task.
 
 ## THE NON-NEGOTIABLES (from our design docs — do not violate)
 - **Naming:** use the exact entity names from `docs/product/02-glossary.md` (Property, Owner,
