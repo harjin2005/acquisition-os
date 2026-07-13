@@ -1,66 +1,166 @@
-# PROGRESS.md — The one page that shows how much of AcquisitionOS is actually built
+# PROGRESS.md — Granular checklist: what's actually built vs the full plan
 
-**This is for YOU (the founder) to check in on, any time, without re-reading the whole project.**
-**Updated whenever a sprint/epic status changes — not every session. See `CURRENT_STATE.md` for
-session-by-session detail; this file is the zoomed-out view.**
+**For YOU to scan any time and know exactly what's real.** Every box is checked only when its
+acceptance criteria (per `docs/product/31-execution-plan-v1.0.md`, DOC-131) is met and was
+actually shown working — not when someone says "basically done."
 
 _Last updated: 2026-07-13_
 
----
-
-## The one-line answer
-
-**1 of 18 sprints closed. Sprint 2 in progress.** Everything is exactly where the plan
-(`docs/product/31-execution-plan-v1.0.md`) says it should be for this stage — no shortcuts taken,
-nothing skipped, nothing built out of order.
+**Totals: 16 of ~95 tracked items checked. Sprint 1 of 18 closed.**
 
 ---
 
-## Epic-by-epic status (13 epics, per DOC-131)
+## E1 — Foundation (Sprint 1–2)
 
-| # | Epic | Sprints | Status | Notes |
-|---|---|---|---|---|
-| E1 | Foundation | S1–S2 | 🟡 **S1 done, S2 tail open** | Repo, CI, Terraform (unapplied), WorkOS (mock mode), identity module — all verified running locally 2026-07-13. S2 tail = MFA flag + device sessions. |
-| E2 | Ontology core | S2–S4 | 🟡 **In progress** | Some models exist (Owner, Contact, Consent, BuyBox) but no migration/service/router yet. Next up: outbox + audit schema. |
-| E3 | Ingestion | S3–S6 | ⚪ Not started | **Blocked on vendor term sheet** (external — your task, not engineering's). Adapter framework can be built against fixtures without waiting. |
-| E4 | Imports | S4–S5 | ⚪ Not started | |
-| E5 | Resolution | S5–S7 | ⚪ Not started | |
-| E6 | Underwriting | S6–S10 | ⚪ Not started | Depends on E3 (real data) to mean anything. |
-| E7 | Pipeline & workspaces | S5–S9 | ⚪ Not started | Product UI (Today/Pipeline/Inbox) — frontend today is 3 auth-proving screens only. |
-| E8 | Conversations | S7–S10 | ⚪ Not started | 10DLC carrier approval has lead time — flag when close. |
-| E9 | Campaigns | S9–S12 | ⚪ Not started | Compliance-critical (suppression/consent) — extra review required per CLAUDE.md. |
-| E10 | AI Agents | S8–S13 | ⚪ **Not started — 0 lines of code** | `backend/app/agents/*` are empty folders. This is expected at this stage. |
-| E11 | Deals & outcomes | S10–S13 | ⚪ Not started | Models exist, nothing wired. |
-| E12 | Commercial (billing, admin) | S12–S14 | ⚪ Not started | |
-| E13 | Hardening & GA launch | S14–S18 | ⚪ Not started | |
+### Sprint 1 (closed 🟢)
+- [x] `scripts/dev-up.sh` — Postgres + roles/schemas, backend+frontend deps, Alembic, boots API+frontend
+- [x] CI: lint (ruff) + import-linter (4 boundary contracts) + unit skeleton
+- [x] CI: Postgres 16 service container matches prod, not the dev workaround
+- [x] Terraform staging scaffolded: network, RDS+Proxy, cache, ecs-service, secrets, observability modules
+- [x] Terraform: prod env intentionally stubbed (by design, not a gap)
+- [x] WorkOS JWKS/JWT verification path (real, not mocked) — currently unexercised, mock mode on
+- [x] Identity module: Organization, Member, Invite models + state machine + dual-owner invariant
+- [x] RBAC matrix as data (`app/core/rbac.py`) + `require_permission` dependency
+- [x] Alembic baseline migration: schemas + tables + RLS `USING`/`WITH CHECK`
+- [x] RLS adversarial suite (9 cases) — merge-blocking
+- [x] docs/product mirror + module READMEs + ADR templates + runbooks
 
-🟢 done · 🟡 in progress · ⚪ not started
+### Verified this session (2026-07-13) — proof it's not just claimed, it runs
+- [x] Fresh `pip install` → `alembic upgrade head` → both migrations apply clean
+- [x] `GET /api/health` returns 200 ok
+- [x] `POST /api/v1/identity/orgs` creates a real org through RLS end-to-end
+- [x] `yarn build` compiles the frontend clean
+- [x] Fixed: `AuditEntry.metadata` reserved-name crash (blocked every fresh install)
+- [x] Fixed: missing `email-validator` dependency (blocked every fresh install)
+- [x] `frontend/yarn.lock` committed, `.gitignore` covers build artifacts
 
----
-
-## What's actually blocking progress (read this before asking "why isn't X built yet")
-
-Per the plan's own critical path:
-**vendor data contract → ingestion → underwriting → golden datasets → accuracy gate → GA**
-
-Three things are open and **not code**:
-1. **ADR-006** — team size / runway — still undecided. Sprint dating scales off this.
-2. **Vendor data contract** — negotiation hasn't started. Blocks E3 onward.
-3. **Design partners** — 0 of the ≥5 needed before PRD freeze recruited.
-
-More engineering sessions cannot out-run these three. If progress feels slow past Sprint 2,
-check here first — it's very likely waiting on one of these three, not on Claude Code.
+### Sprint 2 — E1 tail (open)
+- [ ] MFA enforcement flag per org
+- [ ] Device/session listing UI
+- [ ] mypy promoted from advisory (`|| true`) to hard-gate in CI
+- [ ] Bootstrap-org endpoint: fix slug-duplicate 500→409 bug **(queued now — see NEXT_TASK.md)**
+- [ ] Bootstrap-org: replace dev synthetic subject_id with real WorkOS provisioning webhook
+- [ ] RBAC `dual_log=True` permissions (role change, member remove) actually enforced — currently metadata-only, no second-actor witness recorded
+- [ ] Rate limiting on the public bootstrap-org endpoint
 
 ---
 
-## Right now
+## E2 — Ontology core (Sprint 2–4)
+- [ ] Outbox model wired: dispatcher process publishing `events.outbox` rows
+- [ ] Audit schema live: services actually writing to `audit.log` on privileged actions
+- [ ] Owner model: migration + router + service (model exists, unwired)
+- [ ] Contact + ContactChannel + ConsentRecord: migration + router + service (models exist, unwired)
+- [ ] Lead model + full state machine service (new→...→closed, `transition_lead()` as sole mutator)
+- [ ] Deal + Offer: migration + router + service (models exist, unwired)
+- [ ] BuyBox: migration + router + service (model exists, unwired)
+- [ ] MotivationSignal: migration + router + service (model exists, unwired)
+- [ ] MetroCoverage: migration + router + service (model exists, unwired)
+- [ ] RLS adversarial suite extended to cover every new tenant table above
 
-- **Active task:** see `.claude/NEXT_TASK.md` (currently: Backend session fixing the bootstrap
-  slug-conflict bug).
-- **Session log:** see `.claude/CURRENT_STATE.md` for what each session did, in detail.
+---
 
-## How this file gets kept honest
+## E3 — Ingestion (Sprint 3–6) — **blocked on vendor term sheet**
+- [ ] Vendor adapter framework (buildable now, against fixture data — not actually blocked)
+- [ ] First vendor integration — **blocked: no signed contract**
+- [ ] Coverage registry (which metros/vendors are live)
+- [ ] Data expiry enforcement (`licensed.property.expires_at` already modeled, not enforced)
 
-- Only the **Architect session** updates this file (status changes, not routine work).
-- A row moves 🟡→🟢 only when its acceptance criteria (per DOC-131) are actually met and shown
-  working — not when someone says "basically done."
+## E4 — Imports (Sprint 4–5)
+- [ ] CSV dialect parser: PropStream
+- [ ] CSV dialect parser: BatchLeads
+- [ ] CSV dialect parser: DataSift
+- [ ] CSV dialect parser: DealMachine
+- [ ] CSV dialect parser: Podio
+- [ ] Quarantine flow for malformed rows
+- [ ] Consent-unknown default on all imported contacts (DD-5)
+- [ ] Import rollback
+
+## E5 — Resolution (Sprint 5–7)
+- [ ] Splink entity-resolution pipeline
+- [ ] Owner cluster merge/split UX
+- [ ] Labeled fixture set for precision eval
+
+## E6 — Underwriting (Sprint 6–10)
+- [ ] Comps engine
+- [ ] Adjustment logic
+- [ ] Underwriting run + workspace UI
+- [ ] Receipts component kit (show-your-work UI pattern)
+- [ ] Metro golden datasets (accuracy-gate requirement)
+
+## E7 — Pipeline & workspaces (Sprint 5–9)
+- [ ] "Today" view
+- [ ] Pipeline board
+- [ ] Lead workspace
+- [ ] Property workspace
+- [ ] Owner workspace
+- [ ] Search (Meilisearch)
+- [ ] Notifications
+
+## E8 — Conversations (Sprint 7–10)
+- [ ] Inbox UI
+- [ ] SMS provider integration
+- [ ] Email provider integration
+- [ ] Opt-out processing
+- [ ] Conversation summaries
+- [ ] 10DLC carrier onboarding — **start early, has weeks of lead time once triggered**
+
+## E9 — Campaigns (Sprint 9–12) — compliance-critical, founder review required
+- [ ] Campaign authorization object
+- [ ] Campaign wizard
+- [ ] Pre-flight compliance check
+- [ ] Send service (the only messaging egress, per import-linter contract)
+- [ ] Suppression matrix + tests
+- [ ] Per-message audit trail
+
+## E10 — AI Agents (Sprint 8–13) — **0 lines of code exist**
+- [ ] Agent platform: model gateway (LiteLLM)
+- [ ] Agent platform: typed tool registry
+- [ ] Agent platform: eval harness
+- [ ] Agent platform: budget/cost tracking
+- [ ] Prioritization agent (L1)
+- [ ] Underwriting agent (L1)
+- [ ] Follow-up agent (L1)
+- [ ] Prompt-injection eval cases
+
+## E11 — Deals & outcomes (Sprint 10–13)
+- [ ] Deal workspace UI
+- [ ] Offer chain versioning UI
+- [ ] Closing checklist
+- [ ] Outcome capture + extraction
+- [ ] Error attribution (projected vs actual)
+- [ ] Privacy / DSR (data subject request) saga
+
+## E12 — Commercial (Sprint 12–14)
+- [ ] Billing / usage wallet
+- [ ] Reporting v1 (4 fixed dashboards)
+- [ ] Admin console
+- [ ] Export controls
+
+## E13 — Hardening & GA launch (Sprint 14–18)
+- [ ] Load tests
+- [ ] Chaos testing on send path
+- [ ] SOC2 evidence automation
+- [ ] Restore drill
+- [ ] Design-partner onboarding tooling
+- [ ] Accuracy gate review
+- [ ] GA — metro 1
+
+---
+
+## External / business track (not code — tracked here because it blocks E3 onward)
+- [ ] ADR-006 — team size / runway decision
+- [ ] Vendor data contract signed (derivative/persistence rights)
+- [ ] ≥15 design-partner interviews conducted
+- [ ] ≥5 design-partner LOIs signed (data-sharing) — required before PRD freeze
+- [ ] ADR-008 — metro selection (3–5 disclosure-state metros)
+
+**If nothing below E2 is moving, check this section first — it's very likely the real reason,
+not an engineering slowdown.**
+
+---
+
+## How this file stays honest
+- Only the Architect session checks/unchecks boxes, and only when the doc-defined acceptance
+  criteria is actually met and demonstrated — not on "should be close."
+- Session-by-session detail lives in `.claude/CURRENT_STATE.md`. The single active task is
+  always in `.claude/NEXT_TASK.md`.
