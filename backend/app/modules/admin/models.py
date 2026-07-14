@@ -15,7 +15,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import CheckConstraint, DateTime, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,7 +33,7 @@ class AuditEntry(IdMixin, TenantMixin, Base):
     action: Mapped[str] = mapped_column(String(96), nullable=False)   # e.g., "campaign.approve"
     target_kind: Mapped[str] = mapped_column(String(64), nullable=False)  # e.g., "campaign"
     target_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
-    metadata: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     dual_witness_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
 
 

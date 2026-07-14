@@ -6,6 +6,7 @@ uvicorn[standard]==0.34.0
 pydantic==2.12.5
 pydantic-settings==2.7.1
 python-dotenv==1.0.1
+email-validator==2.2.0
 
 # Database (Postgres 15 in dev per ADR-EMERGENT-001; Postgres 16 in prod per DOC-130 §5)
 SQLAlchemy==2.0.36

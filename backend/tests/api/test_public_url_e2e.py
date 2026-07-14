@@ -19,13 +19,17 @@ import uuid
 from pathlib import Path
 
 import pytest
-import requests
 from dotenv import load_dotenv
 
+requests = pytest.importorskip("requests", reason="Emergent-preview-only e2e test dependency")
 
-# Load frontend env so we hit the SAME URL a browser user hits.
+# Load frontend env so we hit the SAME URL a browser user hits (Emergent preview only).
 load_dotenv(Path("/app/frontend/.env"))
-BASE_URL = os.environ["REACT_APP_BACKEND_URL"].rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/")
+
+pytestmark = pytest.mark.skipif(
+    not BASE_URL, reason="REACT_APP_BACKEND_URL not set — Emergent-preview-only e2e test"
+)
 
 
 def _mint_dev_token(*, org_id: str, subject_id: str, role: str = "OWNER",

@@ -32,8 +32,18 @@ forbidden_modules =
 ignore_imports =
     # `db.registry` intentionally imports module models so Alembic's
     # autogenerate sees every mapped class. This is the sanctioned exception.
+    # Keep this list in sync with the imports in `app/db/registry.py` — CI
+    # will fail otherwise (see M1 / 0002_ontology_expansion for the last drift).
     app.db.registry -> app.modules.identity.models
     app.db.registry -> app.modules.ontology.models
+    app.db.registry -> app.modules.leads.models
+    app.db.registry -> app.modules.deals.models
+    app.db.registry -> app.modules.conversations.models
+    app.db.registry -> app.modules.campaigns.models
+    app.db.registry -> app.modules.underwriting.models
+    app.db.registry -> app.modules.admin.models
+    app.db.registry -> app.modules.agents_svc.models
+    app.db.registry -> app.modules.imports.models
 
 # ----- Cross-module encapsulation ------------------------------------------
 [importlinter:contract:cross-module-models]
