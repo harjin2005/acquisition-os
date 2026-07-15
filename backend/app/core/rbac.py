@@ -58,11 +58,25 @@ def register_permission(perm: Permission) -> Permission:
 
 register_permission(Permission("org.read", Role.VIEWER, "Read own organization"))
 register_permission(Permission("org.invite", Role.MANAGER, "Invite members"))
-register_permission(Permission("org.member.role", Role.ADMIN, "Change member roles", dual_log=True))
-register_permission(Permission("org.member.remove", Role.ADMIN, "Remove members", dual_log=True))
+register_permission(
+    Permission("org.member.role", Role.ADMIN, "Change member roles", dual_log=True)
+)
+register_permission(
+    Permission("org.member.remove", Role.ADMIN, "Remove members", dual_log=True)
+)
 register_permission(Permission("property.read", Role.VIEWER, "Read properties (stub)"))
-register_permission(Permission("property.write", Role.MEMBER, "Create/update properties (stub)"))
-register_permission(Permission("admin.impersonate", Role.OWNER, "Impersonate a tenant", dual_log=True, surface="admin"))
+register_permission(
+    Permission("property.write", Role.MEMBER, "Create/update properties (stub)")
+)
+register_permission(
+    Permission(
+        "admin.impersonate",
+        Role.OWNER,
+        "Impersonate a tenant",
+        dual_log=True,
+        surface="admin",
+    )
+)
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +103,7 @@ class PermissionDenied(PermissionError):
 def require_permission(name: str) -> Callable[[Principal], Principal]:
     """FastAPI dependency factory. Usage::
 
-        @router.post("/invites", dependencies=[Depends(require_permission("org.invite"))])
+    @router.post("/invites", dependencies=[Depends(require_permission("org.invite"))])
     """
     perm = PERMISSIONS.get(name)
     if perm is None:

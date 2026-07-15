@@ -20,7 +20,13 @@ def client() -> TestClient:
     return TestClient(create_app())
 
 
-def _dev_token(*, org_id: uuid.UUID, actor_id: uuid.UUID, role: str = "OWNER", email: str = "u@example.com") -> str:
+def _dev_token(
+    *,
+    org_id: uuid.UUID,
+    actor_id: uuid.UUID,
+    role: str = "OWNER",
+    email: str = "u@example.com",
+) -> str:
     payload = {
         "sub": str(actor_id),
         "org_id": str(org_id),
@@ -48,14 +54,20 @@ def test_sprint_meta(client: TestClient):
 
 
 def test_bootstrap_and_list(client: TestClient, clean_db):
-    r = client.post("/api/v1/identity/orgs", json={"name": "Bootstrap Co", "slug": "boot-co"})
+    r = client.post(
+        "/api/v1/identity/orgs", json={"name": "Bootstrap Co", "slug": "boot-co"}
+    )
     assert r.status_code == 201, r.text
     body = r.json()
     org_id = uuid.UUID(body["org"]["id"])
     founder = body["founder"]
 
-    token = _dev_token(org_id=org_id, actor_id=uuid.UUID(founder["subject_id"]), role="OWNER")
-    r2 = client.get("/api/v1/identity/orgs/me/members", headers={"Authorization": f"Bearer {token}"})
+    token = _dev_token(
+        org_id=org_id, actor_id=uuid.UUID(founder["subject_id"]), role="OWNER"
+    )
+    r2 = client.get(
+        "/api/v1/identity/orgs/me/members", headers={"Authorization": f"Bearer {token}"}
+    )
     assert r2.status_code == 200
     assert len(r2.json()) == 1
 
@@ -79,7 +91,9 @@ def test_cross_org_api_is_denied(client: TestClient, two_orgs):
     org_a, org_b = two_orgs
     a_actor = uuid.uuid4()
     token = _dev_token(org_id=org_a, actor_id=a_actor)
-    r = client.get("/api/v1/ontology/properties", headers={"Authorization": f"Bearer {token}"})
+    r = client.get(
+        "/api/v1/ontology/properties", headers={"Authorization": f"Bearer {token}"}
+    )
     assert r.status_code == 200
     body = r.json()
     assert len(body) == 1

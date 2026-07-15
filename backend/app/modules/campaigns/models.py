@@ -10,7 +10,14 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -20,7 +27,9 @@ from app.db.base import Base, IdMixin, TenantMixin, TimestampMixin
 class Template(IdMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "template"
     __table_args__ = (
-        CheckConstraint("channel IN ('sms','email','mail')", name="ck_template_channel"),
+        CheckConstraint(
+            "channel IN ('sms','email','mail')", name="ck_template_channel"
+        ),
         {"schema": "core"},
     )
 
@@ -43,16 +52,28 @@ class Campaign(IdMixin, TenantMixin, TimestampMixin, Base):
 
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     audience_query: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    audience_snapshot_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    audience_snapshot_hash: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
     audience_size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    channels: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)  # ["sms","email"]
+    channels: Mapped[list] = mapped_column(
+        JSONB, nullable=False, default=list
+    )  # ["sms","email"]
     template_ids: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
-    cadence: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)  # {daily_cap, quiet_hours, frequency_cap_days}
+    cadence: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )  # {daily_cap, quiet_hours, frequency_cap_days}
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="draft")
-    approved_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
-    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     signed_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class SuppressionEntry(IdMixin, TenantMixin, TimestampMixin, Base):
@@ -62,12 +83,21 @@ class SuppressionEntry(IdMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "suppression"
     __table_args__ = (
         UniqueConstraint("org_id", "channel", "address", name="uq_suppression"),
-        CheckConstraint("channel IN ('sms','voice','email','mail','all')", name="ck_suppression_channel"),
+        CheckConstraint(
+            "channel IN ('sms','voice','email','mail','all')",
+            name="ck_suppression_channel",
+        ),
         {"schema": "core"},
     )
 
     channel: Mapped[str] = mapped_column(String(8), nullable=False)
     address: Mapped[str] = mapped_column(String(400), nullable=False)
-    reason: Mapped[str] = mapped_column(String(64), nullable=False)  # STOP | manual | dnc_national | litigator | complaint
-    origin: Mapped[str] = mapped_column(String(32), nullable=False, default="org")  # org | platform
-    added_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    reason: Mapped[str] = mapped_column(
+        String(64), nullable=False
+    )  # STOP | manual | dnc_national | litigator | complaint
+    origin: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="org"
+    )  # org | platform
+    added_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )

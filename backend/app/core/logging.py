@@ -16,7 +16,9 @@ import structlog
 from app.core.config import get_settings
 
 
-def _tenancy_processor(_logger: Any, _name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+def _tenancy_processor(
+    _logger: Any, _name: str, event_dict: dict[str, Any]
+) -> dict[str, Any]:
     """Attach current org_id / actor_id from tenancy context, if any."""
     from app.core.tenancy import current_context  # local import to avoid cycles
 

@@ -63,12 +63,36 @@ def create_app() -> FastAPI:
             "sprint": 1,
             "objective": "Repo foundation, CI, Terraform staging, WorkOS skeleton, Alembic + RLS baseline.",
             "acceptance_criteria": [
-                {"id": "ac1", "title": "scripts/dev-up.sh boots api + frontend locally", "met": True},
-                {"id": "ac2", "title": "CI: lint/typecheck/unit skeleton + import-linter", "met": True},
-                {"id": "ac3", "title": "Terraform staging scaffolded (network, RDS, ECS, secrets)", "met": True},
-                {"id": "ac4", "title": "WorkOS auth + identity module skeleton (orgs, invites, roles)", "met": True},
-                {"id": "ac5", "title": "Alembic baseline + RLS + adversarial suite merge-blocking", "met": True},
-                {"id": "ac6", "title": "docs/product mirror + module README + ADR templates", "met": True},
+                {
+                    "id": "ac1",
+                    "title": "scripts/dev-up.sh boots api + frontend locally",
+                    "met": True,
+                },
+                {
+                    "id": "ac2",
+                    "title": "CI: lint/typecheck/unit skeleton + import-linter",
+                    "met": True,
+                },
+                {
+                    "id": "ac3",
+                    "title": "Terraform staging scaffolded (network, RDS, ECS, secrets)",
+                    "met": True,
+                },
+                {
+                    "id": "ac4",
+                    "title": "WorkOS auth + identity module skeleton (orgs, invites, roles)",
+                    "met": True,
+                },
+                {
+                    "id": "ac5",
+                    "title": "Alembic baseline + RLS + adversarial suite merge-blocking",
+                    "met": True,
+                },
+                {
+                    "id": "ac6",
+                    "title": "docs/product mirror + module README + ADR templates",
+                    "met": True,
+                },
             ],
         }
 

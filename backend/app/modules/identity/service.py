@@ -26,6 +26,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import DomainError, NotFoundError
+from app.core.rbac import Principal
 from app.modules.identity.models import Invite, Member, Organization
 
 
@@ -62,7 +63,9 @@ class IdentityService:
         if existing is not None:
             raise DomainError(f"slug {slug!r} is already taken", code="slug_conflict")
 
-        org = Organization(id=org_id or uuid.uuid4(), name=name, slug=slug, workos_org_id=workos_org_id)
+        org = Organization(
+            id=org_id or uuid.uuid4(), name=name, slug=slug, workos_org_id=workos_org_id
+        )
         self.db.add(org)
         self.db.flush()
 
@@ -102,13 +105,23 @@ class IdentityService:
         if role not in ("viewer", "member", "manager", "admin"):
             raise DomainError(f"role {role!r} is not invitable")
         existing_member = self.db.execute(
-            select(Member).where(Member.org_id == org_id, Member.email == email, Member.status == "active")
+            select(Member).where(
+                Member.org_id == org_id,
+                Member.email == email,
+                Member.status == "active",
+            )
         ).scalar_one_or_none()
         if existing_member is not None:
-            raise DomainError("email is already an active member", code="already_member")
+            raise DomainError(
+                "email is already an active member", code="already_member"
+            )
 
         existing_invite = self.db.execute(
-            select(Invite).where(Invite.org_id == org_id, Invite.email == email, Invite.status == "pending")
+            select(Invite).where(
+                Invite.org_id == org_id,
+                Invite.email == email,
+                Invite.status == "pending",
+            )
         ).scalar_one_or_none()
         if existing_invite is not None:
             raise DomainError("pending invite already exists", code="invite_conflict")
@@ -126,7 +139,9 @@ class IdentityService:
         return invite
 
     def accept_invite(self, *, token: str, subject_id: str) -> Member:
-        invite = self.db.execute(select(Invite).where(Invite.token == token)).scalar_one_or_none()
+        invite = self.db.execute(
+            select(Invite).where(Invite.token == token)
+        ).scalar_one_or_none()
         if invite is None:
             raise NotFoundError("invite not found")
         if invite.status != "pending":
@@ -149,8 +164,9 @@ class IdentityService:
         self.db.flush()
         return member
 
-    def change_role(self, *, actor: "Principal", target_member_id: uuid.UUID, new_role: str) -> Member:  # noqa: F821
-
+    def change_role(
+        self, *, actor: Principal, target_member_id: uuid.UUID, new_role: str
+    ) -> Member:
         if new_role not in ("viewer", "member", "manager", "admin", "owner"):
             raise DomainError(f"role {new_role!r} invalid")
         target = self.db.get(Member, target_member_id)
@@ -159,14 +175,18 @@ class IdentityService:
 
         # Owner demotion requires another owner to exist (dual-owner rule).
         if target.role == "owner" and new_role != "owner":
-            other_owners = self.db.execute(
-                select(Member).where(
-                    Member.org_id == target.org_id,
-                    Member.role == "owner",
-                    Member.status == "active",
-                    Member.id != target.id,
+            other_owners = (
+                self.db.execute(
+                    select(Member).where(
+                        Member.org_id == target.org_id,
+                        Member.role == "owner",
+                        Member.status == "active",
+                        Member.id != target.id,
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             if not other_owners:
                 raise DomainError("cannot demote the last owner", code="last_owner")
 
@@ -179,14 +199,18 @@ class IdentityService:
         if target is None:
             raise NotFoundError("member not found")
         if target.role == "owner":
-            other_owners = self.db.execute(
-                select(Member).where(
-                    Member.org_id == target.org_id,
-                    Member.role == "owner",
-                    Member.status == "active",
-                    Member.id != target.id,
+            other_owners = (
+                self.db.execute(
+                    select(Member).where(
+                        Member.org_id == target.org_id,
+                        Member.role == "owner",
+                        Member.status == "active",
+                        Member.id != target.id,
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             if not other_owners:
                 raise DomainError("cannot remove the last owner", code="last_owner")
         target.status = "removed"

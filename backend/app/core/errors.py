@@ -46,7 +46,9 @@ def install_error_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(IntegrityError)
-    async def _integrity_handler(_request: Request, exc: IntegrityError) -> JSONResponse:
+    async def _integrity_handler(
+        _request: Request, exc: IntegrityError
+    ) -> JSONResponse:
         """Defense-in-depth: any DB-level uniqueness or check violation becomes
         a machine-readable 409 rather than a bare 500. Business logic should
         catch these in `service.py` first — this is the safety net."""
@@ -58,5 +60,8 @@ def install_error_handlers(app: FastAPI) -> None:
             code = "unique_conflict"
         return JSONResponse(
             status_code=409,
-            content={"error": code, "message": "database integrity constraint violated"},
+            content={
+                "error": code,
+                "message": "database integrity constraint violated",
+            },
         )

@@ -25,7 +25,9 @@ class ImportJob(IdMixin, TenantMixin, TimestampMixin, Base):
         {"schema": "core"},
     )
 
-    dialect: Mapped[str] = mapped_column(String(32), nullable=False, default="generic_csv")
+    dialect: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="generic_csv"
+    )
     filename: Mapped[str] = mapped_column(String(400), nullable=False)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     mapping: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
@@ -33,9 +35,15 @@ class ImportJob(IdMixin, TenantMixin, TimestampMixin, Base):
     imported_rows: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     quarantined_rows: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
-    consent_attestation: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    consent_attestation: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    finished_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
@@ -43,7 +51,9 @@ class ImportQuarantine(IdMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "import_quarantine"
     __table_args__ = {"schema": "derived"}
 
-    job_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    job_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
     row_num: Mapped[int] = mapped_column(Integer, nullable=False)
     row_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     reasons: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)

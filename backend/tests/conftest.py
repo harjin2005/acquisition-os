@@ -41,7 +41,11 @@ def clean_db(_pg_ready) -> Iterator[None]:
     """Truncate all tenant tables between tests — order matters for FKs."""
     engine = get_service_engine()
     with engine.begin() as conn:
-        conn.execute(text("TRUNCATE licensed.property, core.invite, core.member, core.organization CASCADE"))
+        conn.execute(
+            text(
+                "TRUNCATE licensed.property, core.invite, core.member, core.organization CASCADE"
+            )
+        )
     yield
 
 

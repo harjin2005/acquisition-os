@@ -64,7 +64,9 @@ def _decode_mock(token: str) -> dict[str, Any]:
     try:
         payload = json.loads(base64.urlsafe_b64decode(token[4:] + "==").decode())
     except Exception as exc:  # noqa: BLE001 - narrow via wrap
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid dev token: {exc}") from exc
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, f"invalid dev token: {exc}"
+        ) from exc
     return payload
 
 
@@ -91,7 +93,9 @@ async def _verify_workos_jwt(token: str, settings: Settings) -> dict[str, Any]:
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}"
+        ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -109,7 +113,9 @@ async def get_principal(
 
     if settings.workos_mock_mode:
         if settings.app_env not in ("development", "test"):
-            raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "mock auth disabled outside dev")
+            raise HTTPException(
+                status.HTTP_500_INTERNAL_SERVER_ERROR, "mock auth disabled outside dev"
+            )
         claims = _decode_mock(token)
     else:
         claims = await _verify_workos_jwt(token, settings)
@@ -119,7 +125,9 @@ async def get_principal(
         org_id = str(claims["org_id"])
         role = Role[str(claims.get("role", "MEMBER")).upper()]
     except KeyError as exc:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"claim missing: {exc}") from exc
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED, f"claim missing: {exc}"
+        ) from exc
 
     return Principal(
         actor_id=str(uuid.UUID(actor_id)),

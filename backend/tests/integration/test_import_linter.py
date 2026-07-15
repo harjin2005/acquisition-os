@@ -20,7 +20,9 @@ def test_import_linter_is_green_baseline():
         capture_output=True,
         text=True,
     )
-    assert result.returncode == 0, f"import-linter failed:\n{result.stdout}\n{result.stderr}"
+    assert (
+        result.returncode == 0
+    ), f"import-linter failed:\n{result.stdout}\n{result.stderr}"
     assert "0 broken" in result.stdout
 
 
@@ -34,7 +36,9 @@ def test_import_linter_would_catch_a_violation(tmp_path, monkeypatch):
     """
     backend_root = Path(__file__).resolve().parents[2]
 
-    violating_module = backend_root / "app" / "modules" / "identity" / "_temp_violation.py"
+    violating_module = (
+        backend_root / "app" / "modules" / "identity" / "_temp_violation.py"
+    )
     violating_module.write_text("import openai  # noqa: F401 — deliberate violation\n")
     try:
         result = subprocess.run(
@@ -43,7 +47,9 @@ def test_import_linter_would_catch_a_violation(tmp_path, monkeypatch):
             capture_output=True,
             text=True,
         )
-        assert result.returncode != 0, "import-linter should have flagged the demo violation"
+        assert (
+            result.returncode != 0
+        ), "import-linter should have flagged the demo violation"
         assert "openai" in (result.stdout + result.stderr).lower()
     finally:
         violating_module.unlink(missing_ok=True)

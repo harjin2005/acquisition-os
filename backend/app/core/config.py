@@ -21,9 +21,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Global settings loaded once at process start."""
 
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", case_sensitive=False
+    )
 
-    app_env: Literal["development", "staging", "production", "test"] = Field(default="development")
+    app_env: Literal["development", "staging", "production", "test"] = Field(
+        default="development"
+    )
     app_log_level: str = Field(default="INFO")
 
     # --- Postgres (canonical, DOC-130 §5) -----------------------------------

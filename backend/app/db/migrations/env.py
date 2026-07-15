@@ -36,7 +36,9 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
-def _include_object(obj: Any, name: str, type_: str, reflected: bool, compare_to: Any) -> bool:
+def _include_object(
+    obj: Any, name: str, type_: str, reflected: bool, compare_to: Any
+) -> bool:
     return True
 
 

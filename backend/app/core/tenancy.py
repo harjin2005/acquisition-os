@@ -61,7 +61,9 @@ def current_context() -> TenancyContext | None:
 
 
 @contextmanager
-def tenancy(org_id: uuid.UUID | str, actor_id: uuid.UUID | str | None = None) -> Iterator[TenancyContext]:
+def tenancy(
+    org_id: uuid.UUID | str, actor_id: uuid.UUID | str | None = None
+) -> Iterator[TenancyContext]:
     """Push a tenancy context for the duration of the `with` block."""
     ctx = TenancyContext(
         org_id=uuid.UUID(str(org_id)),
@@ -88,7 +90,11 @@ def _build_engine(url: str, *, service_role: bool) -> Engine:
         url,
         pool_pre_ping=True,
         future=True,
-        connect_args={"application_name": "acquisition-os-svc" if service_role else "acquisition-os-app"},
+        connect_args={
+            "application_name": "acquisition-os-svc"
+            if service_role
+            else "acquisition-os-app"
+        },
     )
     return engine
 
@@ -110,7 +116,9 @@ def get_service_engine() -> Engine:
     (import-linter enforced). Never expose to routers."""
     global _service_engine
     if _service_engine is None:
-        _service_engine = _build_engine(get_settings().database_admin_url, service_role=True)
+        _service_engine = _build_engine(
+            get_settings().database_admin_url, service_role=True
+        )
     return _service_engine
 
 
@@ -130,9 +138,14 @@ def _install_tenancy_guardrail(engine: Engine) -> None:
                 "Wrap the call site in `with tenancy(org_id): ...`."
             )
         # SET LOCAL is mandatory in transaction-pooled deployments (DOC-131 D10).
-        conn.execute(text("SET LOCAL app.org_id = :org_id"), {"org_id": str(ctx.org_id)})
+        conn.execute(
+            text("SET LOCAL app.org_id = :org_id"), {"org_id": str(ctx.org_id)}
+        )
         if ctx.actor_id is not None:
-            conn.execute(text("SET LOCAL app.actor_id = :actor_id"), {"actor_id": str(ctx.actor_id)})
+            conn.execute(
+                text("SET LOCAL app.actor_id = :actor_id"),
+                {"actor_id": str(ctx.actor_id)},
+            )
 
 
 @contextmanager

@@ -28,13 +28,25 @@ class AuditEntry(IdMixin, TenantMixin, Base):
     __tablename__ = "log"
     __table_args__ = {"schema": "audit"}
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    actor_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
-    action: Mapped[str] = mapped_column(String(96), nullable=False)   # e.g., "campaign.approve"
-    target_kind: Mapped[str] = mapped_column(String(64), nullable=False)  # e.g., "campaign"
-    target_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    action: Mapped[str] = mapped_column(
+        String(96), nullable=False
+    )  # e.g., "campaign.approve"
+    target_kind: Mapped[str] = mapped_column(
+        String(64), nullable=False
+    )  # e.g., "campaign"
+    target_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
     details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    dual_witness_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    dual_witness_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
 
 
 class OutboxEvent(IdMixin, TenantMixin, TimestampMixin, Base):
@@ -45,7 +57,9 @@ class OutboxEvent(IdMixin, TenantMixin, TimestampMixin, Base):
 
     __tablename__ = "outbox"
     __table_args__ = (
-        CheckConstraint("status IN ('pending','published','failed','dead')", name="ck_outbox_status"),
+        CheckConstraint(
+            "status IN ('pending','published','failed','dead')", name="ck_outbox_status"
+        ),
         {"schema": "events"},
     )
 
@@ -55,7 +69,9 @@ class OutboxEvent(IdMixin, TenantMixin, TimestampMixin, Base):
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
@@ -65,8 +81,12 @@ class ImpersonationSession(IdMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "impersonation"
     __table_args__ = {"schema": "audit"}
 
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     supporter_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     reason: Mapped[str] = mapped_column(String(400), nullable=False)
     consent_ref: Mapped[str | None] = mapped_column(String(200), nullable=True)

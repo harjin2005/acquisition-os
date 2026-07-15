@@ -81,7 +81,9 @@ def get_my_org(principal: Principal = Depends(require_permission("org.read"))) -
 
 
 @router.get("/orgs/me/members")
-def list_members(principal: Principal = Depends(require_permission("org.read"))) -> list[dict]:
+def list_members(
+    principal: Principal = Depends(require_permission("org.read")),
+) -> list[dict]:
     with tenancy(principal.org_id, principal.actor_id):
         with app_session() as db:
             members = IdentityService(db).list_members(uuid.UUID(principal.org_id))
@@ -119,7 +121,9 @@ def accept_invite(body: schemas.InviteAccept = Body(...)) -> dict:
 
     with tenancy(org_id):
         with app_session() as db:
-            member = IdentityService(db).accept_invite(token=body.token, subject_id=body.subject_id)
+            member = IdentityService(db).accept_invite(
+                token=body.token, subject_id=body.subject_id
+            )
             return to_member_dict(member)
 
 
@@ -131,7 +135,9 @@ def change_member_role(
 ) -> dict:
     with tenancy(principal.org_id, principal.actor_id):
         with app_session() as db:
-            m = IdentityService(db).change_role(actor=principal, target_member_id=member_id, new_role=body.role)
+            m = IdentityService(db).change_role(
+                actor=principal, target_member_id=member_id, new_role=body.role
+            )
             return to_member_dict(m)
 
 

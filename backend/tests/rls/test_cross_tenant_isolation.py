@@ -121,7 +121,9 @@ def test_guc_is_local_not_session(two_orgs):
     org_a, _ = two_orgs
     with tenancy(org_a):
         with app_session() as db:
-            val = db.execute(text("SELECT current_setting('app.org_id', true)")).scalar()
+            val = db.execute(
+                text("SELECT current_setting('app.org_id', true)")
+            ).scalar()
             assert val == str(org_a)
     # After the with-block closes, a new session outside tenancy must not see it.
     with pytest.raises(TenancyMissingError):

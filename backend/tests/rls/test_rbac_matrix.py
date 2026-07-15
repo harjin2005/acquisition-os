@@ -20,9 +20,11 @@ ROLES = [Role.VIEWER, Role.MEMBER, Role.MANAGER, Role.ADMIN, Role.OWNER]
 def test_role_meets_or_denied(perm_name: str, role: Role):
     perm = PERMISSIONS[perm_name]
     dep = require_permission(perm_name)
-    principal = Principal(actor_id="00000000-0000-0000-0000-000000000000",
-                          org_id="00000000-0000-0000-0000-000000000000",
-                          role=role)
+    principal = Principal(
+        actor_id="00000000-0000-0000-0000-000000000000",
+        org_id="00000000-0000-0000-0000-000000000000",
+        role=role,
+    )
     if role.value >= perm.min_role.value:
         assert dep(principal=principal) is principal
     else:

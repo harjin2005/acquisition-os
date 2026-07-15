@@ -25,7 +25,9 @@ class UnderwritingRun(IdMixin, TenantMixin, TimestampMixin, Base):
         {"schema": "derived"},
     )
 
-    property_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    property_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
     lead_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     strategy: Mapped[str] = mapped_column(String(16), nullable=False, default="flip")
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
@@ -37,8 +39,12 @@ class UnderwritingRun(IdMixin, TenantMixin, TimestampMixin, Base):
 
     status: Mapped[str] = mapped_column(String(24), nullable=False, default="draft")
     confidence: Mapped[float | None] = mapped_column(Float, nullable=True)  # 0..1
-    model_version: Mapped[str] = mapped_column(String(32), nullable=False, default="rulebase-v1")
-    agent_run_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
+    model_version: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="rulebase-v1"
+    )
+    agent_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
 
 
 class Comp(IdMixin, TenantMixin, TimestampMixin, Base):
@@ -47,7 +53,12 @@ class Comp(IdMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "comp"
     __table_args__ = {"schema": "derived"}
 
-    run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("derived.underwriting_run.id", ondelete="CASCADE"), nullable=False, index=True)
+    run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("derived.underwriting_run.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     property_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     sale_price: Mapped[float] = mapped_column(Float, nullable=False)
     sale_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -56,6 +67,8 @@ class Comp(IdMixin, TenantMixin, TimestampMixin, Base):
     baths: Mapped[float | None] = mapped_column(Float, nullable=True)
     distance_miles: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     similarity: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
-    adjustment_details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    adjustment_details: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
     excluded: Mapped[bool] = mapped_column(default=False, nullable=False)
     exclusion_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)

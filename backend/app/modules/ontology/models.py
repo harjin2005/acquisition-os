@@ -10,7 +10,16 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint, Index
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+    Index,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -47,11 +56,15 @@ class Property(IdMixin, TenantMixin, TimestampMixin, Base):
     assessed_value: Mapped[float | None] = mapped_column(Float, nullable=True)
     tax_delinquent: Mapped[bool] = mapped_column(default=False, nullable=False)
     last_sale_price: Mapped[float | None] = mapped_column(Float, nullable=True)
-    last_sale_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_sale_date: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     source: Mapped[str] = mapped_column(String(64), nullable=False, default="stub")
     source_ref: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     attributes: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
 
@@ -65,14 +78,21 @@ class Owner(IdMixin, TenantMixin, TimestampMixin, Base):
 
     __tablename__ = "owner"
     __table_args__ = (
-        CheckConstraint("entity_type IN ('person','entity','trust','unknown')", name="ck_owner_entity_type"),
+        CheckConstraint(
+            "entity_type IN ('person','entity','trust','unknown')",
+            name="ck_owner_entity_type",
+        ),
         {"schema": "core"},
     )
 
     display_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    entity_type: Mapped[str] = mapped_column(String(16), nullable=False, default="unknown")
+    entity_type: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="unknown"
+    )
     aliases: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
-    resolution_confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
+    resolution_confidence: Mapped[float] = mapped_column(
+        Float, nullable=False, default=1.0
+    )
     mailing_address: Mapped[str | None] = mapped_column(String(400), nullable=True)
 
 
@@ -87,11 +107,19 @@ class OwnershipLink(IdMixin, TenantMixin, TimestampMixin, Base):
         {"schema": "core"},
     )
 
-    owner_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("core.owner.id", ondelete="CASCADE"), nullable=False)
+    owner_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("core.owner.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     property_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     share: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
-    acquired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    acquired_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    released_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -104,8 +132,12 @@ class Contact(IdMixin, TenantMixin, TimestampMixin, Base):
     __table_args__ = {"schema": "core"}
 
     display_name: Mapped[str] = mapped_column(String(200), nullable=False)
-    role: Mapped[str] = mapped_column(String(32), nullable=False, default="owner_of_record")  # owner_of_record | agent | family | other
-    owner_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("core.owner.id"), nullable=True)
+    role: Mapped[str] = mapped_column(
+        String(32), nullable=False, default="owner_of_record"
+    )  # owner_of_record | agent | family | other
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("core.owner.id"), nullable=True
+    )
 
 
 class ContactChannel(IdMixin, TenantMixin, TimestampMixin, Base):
@@ -113,16 +145,28 @@ class ContactChannel(IdMixin, TenantMixin, TimestampMixin, Base):
 
     __tablename__ = "contact_channel"
     __table_args__ = (
-        CheckConstraint("channel IN ('sms','voice','email','mail')", name="ck_channel_type"),
-        UniqueConstraint("org_id", "contact_id", "channel", "address", name="uq_channel_address"),
+        CheckConstraint(
+            "channel IN ('sms','voice','email','mail')", name="ck_channel_type"
+        ),
+        UniqueConstraint(
+            "org_id", "contact_id", "channel", "address", name="uq_channel_address"
+        ),
         {"schema": "core"},
     )
 
-    contact_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("core.contact.id", ondelete="CASCADE"), nullable=False)
+    contact_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("core.contact.id", ondelete="CASCADE"),
+        nullable=False,
+    )
     channel: Mapped[str] = mapped_column(String(16), nullable=False)
-    address: Mapped[str] = mapped_column(String(400), nullable=False)  # normalized phone e164 or lowercase email
+    address: Mapped[str] = mapped_column(
+        String(400), nullable=False
+    )  # normalized phone e164 or lowercase email
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.5)
-    provenance: Mapped[str] = mapped_column(String(64), nullable=False, default="unknown")
+    provenance: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="unknown"
+    )
 
 
 class ConsentRecord(IdMixin, TenantMixin, TimestampMixin, Base):
@@ -142,10 +186,20 @@ class ConsentRecord(IdMixin, TenantMixin, TimestampMixin, Base):
         {"schema": "core"},
     )
 
-    channel_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("core.contact_channel.id", ondelete="CASCADE"), nullable=False)
-    state: Mapped[str] = mapped_column(String(20), nullable=False, default="consent_unknown")
-    basis: Mapped[str | None] = mapped_column(String(200), nullable=True)  # e.g., "opt-in form Y, ts Z"
-    recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    channel_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("core.contact_channel.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    state: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="consent_unknown"
+    )
+    basis: Mapped[str | None] = mapped_column(
+        String(200), nullable=True
+    )  # e.g., "opt-in form Y, ts Z"
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -182,8 +236,12 @@ class MotivationSignal(IdMixin, TenantMixin, TimestampMixin, Base):
     property_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     kind: Mapped[str] = mapped_column(String(24), nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=1.0)
-    provenance: Mapped[str] = mapped_column(String(128), nullable=False, default="ingested")
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    provenance: Mapped[str] = mapped_column(
+        String(128), nullable=False, default="ingested"
+    )
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
 
@@ -194,7 +252,9 @@ class MetroCoverage(IdMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "metro_coverage"
     __table_args__ = (
         UniqueConstraint("org_id", "metro", name="uq_metro_coverage_org_metro"),
-        CheckConstraint("status IN ('live','beta','waitlist','none')", name="ck_metro_status"),
+        CheckConstraint(
+            "status IN ('live','beta','waitlist','none')", name="ck_metro_status"
+        ),
         {"schema": "derived"},
     )
 

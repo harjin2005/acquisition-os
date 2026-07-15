@@ -60,7 +60,12 @@ def upgrade() -> None:
     op.create_table(
         "member",
         sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("org_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=False, index=True),
+        sa.Column(
+            "org_id",
+            sa.dialects.postgresql.UUID(as_uuid=True),
+            nullable=False,
+            index=True,
+        ),
         sa.Column(
             "organization_id",
             sa.dialects.postgresql.UUID(as_uuid=True),
@@ -74,9 +79,13 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint("org_id", "subject_id", name="uq_member_org_id_subject_id"),
-        sa.CheckConstraint("role IN ('viewer','member','manager','admin','owner')", name="ck_member_role_enum"),
         sa.CheckConstraint(
-            "status IN ('pending','active','suspended','removed')", name="ck_member_status_enum"
+            "role IN ('viewer','member','manager','admin','owner')",
+            name="ck_member_role_enum",
+        ),
+        sa.CheckConstraint(
+            "status IN ('pending','active','suspended','removed')",
+            name="ck_member_status_enum",
         ),
         schema="core",
     )
@@ -85,19 +94,29 @@ def upgrade() -> None:
     op.create_table(
         "invite",
         sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("org_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=False, index=True),
+        sa.Column(
+            "org_id",
+            sa.dialects.postgresql.UUID(as_uuid=True),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("email", sa.String(320), nullable=False),
         sa.Column("role", sa.String(16), nullable=False, server_default="member"),
         sa.Column("status", sa.String(16), nullable=False, server_default="pending"),
-        sa.Column("invited_by", sa.dialects.postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column(
+            "invited_by", sa.dialects.postgresql.UUID(as_uuid=True), nullable=False
+        ),
         sa.Column("token", sa.String(64), nullable=False, unique=True),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint("org_id", "email", name="uq_invite_org_id_email"),
-        sa.CheckConstraint("role IN ('viewer','member','manager','admin')", name="ck_invite_role_enum"),
         sa.CheckConstraint(
-            "status IN ('pending','accepted','revoked','expired')", name="ck_invite_status_enum"
+            "role IN ('viewer','member','manager','admin')", name="ck_invite_role_enum"
+        ),
+        sa.CheckConstraint(
+            "status IN ('pending','accepted','revoked','expired')",
+            name="ck_invite_status_enum",
         ),
         schema="core",
     )
@@ -106,7 +125,12 @@ def upgrade() -> None:
     op.create_table(
         "property",
         sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=True), primary_key=True),
-        sa.Column("org_id", sa.dialects.postgresql.UUID(as_uuid=True), nullable=False, index=True),
+        sa.Column(
+            "org_id",
+            sa.dialects.postgresql.UUID(as_uuid=True),
+            nullable=False,
+            index=True,
+        ),
         sa.Column("address_line1", sa.String(200), nullable=False),
         sa.Column("city", sa.String(120), nullable=False),
         sa.Column("state", sa.String(2), nullable=False),
@@ -120,8 +144,8 @@ def upgrade() -> None:
 
     # ---- 7. RLS ----------------------------------------------------------
     # organization: tenant IS its own id → policy binds `id` to app.org_id.
-    op.execute(sa.text('ALTER TABLE core.organization ENABLE ROW LEVEL SECURITY'))
-    op.execute(sa.text('ALTER TABLE core.organization FORCE ROW LEVEL SECURITY'))
+    op.execute(sa.text("ALTER TABLE core.organization ENABLE ROW LEVEL SECURITY"))
+    op.execute(sa.text("ALTER TABLE core.organization FORCE ROW LEVEL SECURITY"))
     op.execute(
         sa.text(
             "CREATE POLICY organization_tenant_iso ON core.organization "
@@ -132,8 +156,8 @@ def upgrade() -> None:
 
     # All other tenant tables bind `org_id`.
     for schema, table in TENANT_TABLES:
-        op.execute(sa.text(f'ALTER TABLE {schema}.{table} ENABLE ROW LEVEL SECURITY'))
-        op.execute(sa.text(f'ALTER TABLE {schema}.{table} FORCE ROW LEVEL SECURITY'))
+        op.execute(sa.text(f"ALTER TABLE {schema}.{table} ENABLE ROW LEVEL SECURITY"))
+        op.execute(sa.text(f"ALTER TABLE {schema}.{table} FORCE ROW LEVEL SECURITY"))
         op.execute(
             sa.text(
                 f"CREATE POLICY {table}_tenant_iso ON {schema}.{table} "
@@ -151,8 +175,12 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     for schema, table in TENANT_TABLES:
-        op.execute(sa.text(f"DROP POLICY IF EXISTS {table}_tenant_iso ON {schema}.{table}"))
-    op.execute(sa.text("DROP POLICY IF EXISTS organization_tenant_iso ON core.organization"))
+        op.execute(
+            sa.text(f"DROP POLICY IF EXISTS {table}_tenant_iso ON {schema}.{table}")
+        )
+    op.execute(
+        sa.text("DROP POLICY IF EXISTS organization_tenant_iso ON core.organization")
+    )
     op.drop_table("property", schema="licensed")
     op.drop_table("invite", schema="core")
     op.drop_table("member", schema="core")

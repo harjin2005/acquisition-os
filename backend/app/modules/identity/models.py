@@ -28,16 +28,22 @@ class Organization(IdMixin, TimestampMixin, Base):
 
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     slug: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    workos_org_id: Mapped[str | None] = mapped_column(String(128), nullable=True, unique=True)
+    workos_org_id: Mapped[str | None] = mapped_column(
+        String(128), nullable=True, unique=True
+    )
 
-    members: Mapped[list["Member"]] = relationship(back_populates="organization", cascade="all, delete-orphan")
+    members: Mapped[list["Member"]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan"
+    )
 
 
 class Member(IdMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "member"
     __table_args__ = (
         UniqueConstraint("org_id", "subject_id", name="uq_member_org_id_subject_id"),
-        CheckConstraint("role IN ('viewer','member','manager','admin','owner')", name="role_enum"),
+        CheckConstraint(
+            "role IN ('viewer','member','manager','admin','owner')", name="role_enum"
+        ),
         CheckConstraint(
             "status IN ('pending','active','suspended','removed')",
             name="status_enum",
@@ -46,7 +52,9 @@ class Member(IdMixin, TenantMixin, TimestampMixin, Base):
     )
 
     organization_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("core.organization.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("core.organization.id", ondelete="CASCADE"),
+        nullable=False,
     )
     subject_id: Mapped[str] = mapped_column(String(128), nullable=False)
     email: Mapped[str] = mapped_column(String(320), nullable=False)
@@ -60,9 +68,12 @@ class Invite(IdMixin, TenantMixin, TimestampMixin, Base):
     __tablename__ = "invite"
     __table_args__ = (
         UniqueConstraint("org_id", "email", name="uq_invite_org_id_email"),
-        CheckConstraint("role IN ('viewer','member','manager','admin')", name="invite_role_enum"),
         CheckConstraint(
-            "status IN ('pending','accepted','revoked','expired')", name="invite_status_enum"
+            "role IN ('viewer','member','manager','admin')", name="invite_role_enum"
+        ),
+        CheckConstraint(
+            "status IN ('pending','accepted','revoked','expired')",
+            name="invite_status_enum",
         ),
         {"schema": "core"},
     )
@@ -72,4 +83,6 @@ class Invite(IdMixin, TenantMixin, TimestampMixin, Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     invited_by: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     token: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )

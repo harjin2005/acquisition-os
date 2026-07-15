@@ -68,7 +68,11 @@ def list_properties(
 ) -> list[dict]:
     with tenancy(principal.org_id, principal.actor_id):
         with app_session() as db:
-            rows = db.execute(select(Property).order_by(Property.created_at)).scalars().all()
+            rows = (
+                db.execute(select(Property).order_by(Property.created_at))
+                .scalars()
+                .all()
+            )
             return [
                 {
                     "id": str(p.id),
