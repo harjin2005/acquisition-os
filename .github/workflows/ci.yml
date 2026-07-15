@@ -29,9 +29,14 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     env:
-      DATABASE_URL: postgresql+psycopg2://acquisition_os:acquisition_os_dev@localhost:5432/acquisition_os
-      DATABASE_URL_ASYNC: postgresql+psycopg://acquisition_os:acquisition_os_dev@localhost:5432/acquisition_os
-      DATABASE_ADMIN_URL: postgresql+psycopg2://acquisition_os:acquisition_os_dev@localhost:5432/acquisition_os
+      # NOTE: the postgres service container's POSTGRES_USER (below) becomes the
+      # Postgres *bootstrap superuser* — superusers unconditionally bypass RLS,
+      # regardless of BYPASSRLS/FORCE ROW LEVEL SECURITY. It is used ONLY by the
+      # "Provision app + service roles" step to create two real, non-superuser
+      # roles. Neither the app nor the service engine may ever connect as it.
+      DATABASE_URL: postgresql+psycopg2://acquisition_os_app:acquisition_os_app_dev@localhost:5432/acquisition_os
+      DATABASE_URL_ASYNC: postgresql+psycopg://acquisition_os_app:acquisition_os_app_dev@localhost:5432/acquisition_os
+      DATABASE_ADMIN_URL: postgresql+psycopg2://acquisition_os_svc:acquisition_os_svc_dev@localhost:5432/acquisition_os
       MONGO_URL: mongodb://localhost:27017
       DB_NAME: acquisition_os_test
       WORKOS_API_KEY: sk_test_ci
@@ -55,10 +60,30 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt
 
-      - name: Grant BYPASSRLS to service role
+      - name: Provision app + service roles (neither is the bootstrap superuser)
         run: |
-          PGPASSWORD=acquisition_os_dev psql -h localhost -U acquisition_os -d acquisition_os -c "ALTER USER acquisition_os BYPASSRLS;"
-          PGPASSWORD=acquisition_os_dev psql -h localhost -U acquisition_os -d acquisition_os -c "CREATE SCHEMA IF NOT EXISTS licensed; CREATE SCHEMA IF NOT EXISTS core; CREATE SCHEMA IF NOT EXISTS derived; CREATE SCHEMA IF NOT EXISTS audit; CREATE SCHEMA IF NOT EXISTS events;"
+          set -e
+          PSQL="psql -h localhost -U acquisition_os -d acquisition_os -v ON_ERROR_STOP=1"
+          export PGPASSWORD=acquisition_os_dev
+          # `acquisition_os_svc` is the role that actually RUNS migrations:
+          # app/db/migrations/env.py resolves its connection as
+          # `DATABASE_ADMIN_URL or DATABASE_URL`, and DATABASE_ADMIN_URL is
+          # always set here — so it owns the schemas/tables it creates.
+          # `acquisition_os_app` (the RLS-restricted app engine) gets DML
+          # grants on those tables via ALTER DEFAULT PRIVILEGES so every
+          # table alembic creates is automatically usable by the app without
+          # a per-migration grant step.
+          $PSQL -c "CREATE ROLE acquisition_os_app LOGIN PASSWORD 'acquisition_os_app_dev';"
+          $PSQL -c "CREATE ROLE acquisition_os_svc LOGIN PASSWORD 'acquisition_os_svc_dev' BYPASSRLS;"
+          $PSQL -c "ALTER DATABASE acquisition_os OWNER TO acquisition_os_svc;"
+          $PSQL -c "GRANT ALL ON SCHEMA public TO acquisition_os_svc;"
+          $PSQL -c "CREATE SCHEMA IF NOT EXISTS licensed AUTHORIZATION acquisition_os_svc;"
+          $PSQL -c "CREATE SCHEMA IF NOT EXISTS core AUTHORIZATION acquisition_os_svc;"
+          $PSQL -c "CREATE SCHEMA IF NOT EXISTS derived AUTHORIZATION acquisition_os_svc;"
+          $PSQL -c "CREATE SCHEMA IF NOT EXISTS audit AUTHORIZATION acquisition_os_svc;"
+          $PSQL -c "CREATE SCHEMA IF NOT EXISTS events AUTHORIZATION acquisition_os_svc;"
+          $PSQL -c "GRANT USAGE ON SCHEMA core, licensed, derived, audit, events TO acquisition_os_app;"
+          $PSQL -c "ALTER DEFAULT PRIVILEGES FOR ROLE acquisition_os_svc IN SCHEMA core, licensed, derived, audit, events GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO acquisition_os_app;"
 
       - name: Ruff lint
         working-directory: backend

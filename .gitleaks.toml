@@ -1,0 +1,18 @@
+# Extends gitleaks' full default ruleset — do not remove `[extend]`, or every
+# built-in secret-detection rule is silently replaced by nothing but the
+# allowlist below.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known false positives — reviewed, not real secrets"
+regexes = [
+  # backend/app/modules/identity/router.py:125 — `token=body.token,
+  # subject_id=body.subject_id` is a keyword-argument call passing a
+  # user-submitted invite token through to the service layer, not a
+  # credential (entropy ~3.7 — real secrets run ~4.5+). Gitleaks' generic-api-key
+  # rule captures a different substring depending on line wrapping, so both
+  # observed variants are listed rather than relying on exact formatting.
+  '''token=body\.token''',
+  '''subject_id=body\.subject_id''',
+]
