@@ -14,8 +14,9 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 
+from app.core.rate_limit import RateLimiter
 from app.core.rbac import Principal, require_permission
 from app.core.tenancy import app_session, tenancy
 from app.modules.identity import schemas
@@ -35,15 +36,24 @@ router = APIRouter(prefix="/identity", tags=["identity"])
 # `X-Bootstrap-Token` (Sprint 1: dev only; production goes via WorkOS admin API).
 # ---------------------------------------------------------------------------
 
+# Public + unauthenticated by design (Sprint 1 dev path) — rate-limited to
+# stop trivial spam. See app.core.rate_limit for why this is hand-rolled
+# rather than a library.
+bootstrap_rate_limiter = RateLimiter(max_requests=10, window_seconds=3600)
+
 
 @router.post("/orgs", status_code=201)
-def bootstrap_org(payload: schemas.OrganizationCreate = Body(...)) -> dict:
+def bootstrap_org(
+    request: Request, payload: schemas.OrganizationCreate = Body(...)
+) -> dict:
     """Create an org and its founder-owner.
 
     Sprint 1 dev mode: the founder's subject_id is minted synthetically here as
     a stand-in for the WorkOS provisioning callback. Production replaces this
     with a WorkOS webhook (§E12).
     """
+    client_ip = request.client.host if request.client else "unknown"
+    bootstrap_rate_limiter.check(client_ip)
     subject_id = str(uuid.uuid4())
     email = f"founder+{payload.slug}@dev.local"
     new_org_id = uuid.uuid4()

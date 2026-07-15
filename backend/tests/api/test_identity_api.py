@@ -13,10 +13,14 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.modules.identity.router import bootstrap_rate_limiter
 
 
 @pytest.fixture()
 def client() -> TestClient:
+    # bootstrap_rate_limiter is process-global state (see app.core.rate_limit);
+    # reset it per test so one test's calls can't trip another's assertions.
+    bootstrap_rate_limiter.reset()
     return TestClient(create_app())
 
 
@@ -104,3 +108,16 @@ def test_cross_org_api_is_denied(client: TestClient, two_orgs):
 def test_missing_auth_is_401(client: TestClient):
     r = client.get("/api/v1/identity/orgs/me")
     assert r.status_code == 401
+
+
+def test_bootstrap_rate_limit_returns_429(client: TestClient, clean_db):
+    """The public bootstrap endpoint allows 10 requests/hour/IP; the 11th
+    must be rejected with 429 rather than silently accepted."""
+    for i in range(10):
+        r = client.post(
+            "/api/v1/identity/orgs", json={"name": f"Co {i}", "slug": f"rl-co-{i}"}
+        )
+        assert r.status_code == 201, r.text
+
+    r = client.post("/api/v1/identity/orgs", json={"name": "Co 11", "slug": "rl-co-11"})
+    assert r.status_code == 429, r.text
