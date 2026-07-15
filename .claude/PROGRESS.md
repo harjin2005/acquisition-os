@@ -6,7 +6,7 @@ actually shown working — not when someone says "basically done."
 
 _Last updated: 2026-07-15_
 
-**Totals: 24 of ~95 tracked items checked. Sprint 1 of 18 closed. CI is genuinely green
+**Totals: 25 of ~95 tracked items checked. Sprint 1 of 18 closed. CI is genuinely green
 for the first time.**
 
 ---
@@ -51,11 +51,13 @@ for the first time.**
 - [x] Full CI (`ci.yml`) green end-to-end: frontend + backend (14 steps) + security
 
 ### Sprint 2 — E1 tail (open)
+- [x] Rate limiting on the public bootstrap-org endpoint — hand-rolled in-memory limiter
+  (`app/core/rate_limit.py`), no new dependency (endpoint is Sprint-1-dev-only, gets replaced
+  by a real WorkOS webhook next sprint — a Redis-backed library would be premature). 10
+  req/hour/IP. Regression test asserts the 11th request gets 429. Confirmed in real CI.
 - [ ] MFA enforcement flag per org
 - [ ] Device/session listing UI
 - [ ] mypy promoted from advisory (`|| true`) to hard-gate in CI
-- [ ] Rate limiting on the public bootstrap-org endpoint **(proposed next — see NEXT_TASK.md,
-  awaiting founder confirmation)**
 - [ ] Bootstrap-org: replace dev synthetic subject_id with real WorkOS provisioning webhook
 - [ ] RBAC `dual_log=True` permissions (role change, member remove) actually enforced — currently metadata-only, no second-actor witness recorded
 
