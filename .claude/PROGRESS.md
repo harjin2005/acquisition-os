@@ -4,9 +4,10 @@
 acceptance criteria (per `docs/product/31-execution-plan-v1.0.md`, DOC-131) is met and was
 actually shown working — not when someone says "basically done."
 
-_Last updated: 2026-07-13_
+_Last updated: 2026-07-15_
 
-**Totals: 16 of ~95 tracked items checked. Sprint 1 of 18 closed.**
+**Totals: 24 of ~95 tracked items checked. Sprint 1 of 18 closed. CI is genuinely green
+for the first time.**
 
 ---
 
@@ -34,14 +35,29 @@ _Last updated: 2026-07-13_
 - [x] Fixed: missing `email-validator` dependency (blocked every fresh install)
 - [x] `frontend/yarn.lock` committed, `.gitignore` covers build artifacts
 
+### CI made genuinely green (2026-07-15) — was red/unverified before this
+- [x] Bootstrap-org slug-duplicate 500→409 bug — **turned out already fixed**, correcting an
+  earlier wrong claim in this file; regression test exists and passes
+- [x] Ruff lint clean (5 unused-import errors fixed) — this was CI's actual first failure point
+- [x] Ruff format clean (31 of 88 backend files had never been formatted)
+- [x] `.importlinter` allowlist fixed — was stale since the 0002 migration, contract was
+  genuinely BROKEN (8 unlisted module imports), not just unverified
+- [x] **Real cross-tenant RLS bypass in CI found and fixed** — `acquisition_os` was the
+  Postgres bootstrap superuser (via `POSTGRES_USER`), which unconditionally bypasses RLS.
+  The "merge-blocking" RLS suite was not actually verifying tenant isolation. Fixed with two
+  genuine non-superuser roles; confirmed in real GitHub Actions (run 29408811712): 50 passed,
+  1 skipped, 0 failed, all 9 RLS adversarial cases green
+- [x] Gitleaks false positive triaged and allowlisted (verified real secret detection still works)
+- [x] Full CI (`ci.yml`) green end-to-end: frontend + backend (14 steps) + security
+
 ### Sprint 2 — E1 tail (open)
 - [ ] MFA enforcement flag per org
 - [ ] Device/session listing UI
 - [ ] mypy promoted from advisory (`|| true`) to hard-gate in CI
-- [ ] Bootstrap-org endpoint: fix slug-duplicate 500→409 bug **(queued now — see NEXT_TASK.md)**
+- [ ] Rate limiting on the public bootstrap-org endpoint **(proposed next — see NEXT_TASK.md,
+  awaiting founder confirmation)**
 - [ ] Bootstrap-org: replace dev synthetic subject_id with real WorkOS provisioning webhook
 - [ ] RBAC `dual_log=True` permissions (role change, member remove) actually enforced — currently metadata-only, no second-actor witness recorded
-- [ ] Rate limiting on the public bootstrap-org endpoint
 
 ---
 

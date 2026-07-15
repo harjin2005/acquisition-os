@@ -2,48 +2,51 @@
 
 **Only one task lives here at a time. The founder (or the Architect session) sets it.**
 
-## Current task
+## Status update before the new task
+
+The previous task written here (fix the bootstrap slug 500→409 bug) turned out to already be
+fixed — verified with a passing regression test. **Do not redo it.** See
+`.claude/CURRENT_STATE.md` for the full list of what this session actually found and fixed,
+including a real cross-tenant RLS bypass in CI that's now resolved and confirmed green in
+real GitHub Actions.
+
+## Proposed current task (awaiting founder confirmation — not started)
+
 **Session:** BACKEND (session 2)
-**Goal:** Fix one known, already-diagnosed bug. Do not add features, do not touch other modules.
+**Goal:** Add rate limiting to the one public, unauthenticated endpoint. Foundation-only,
+no other module, no migration.
 
-Foundation (identity + ontology + RLS + CI) is already built and was verified running locally
-by the Architect session on 2026-07-13 — do not rebuild or redesign anything. This task is a
-single, scoped bug fix.
+### Why this one
+Of the open E1-tail items (MFA flag, device-session UI, mypy hard-gate, RBAC dual-log
+enforcement, rate limiting), this is the smallest, most self-contained, and the one flagged
+highest-risk in review: `POST /api/v1/identity/orgs` (bootstrap) is fully public and
+unauthenticated by design (dev path, per ADR-EMERGENT-001) — with no rate limit, anyone can
+spam-create organizations and rows in the database.
 
-## The bug
+### Steps
+1. Read `backend/app/modules/identity/router.py::bootstrap_org` and check what rate-limiting
+   library (if any) is already in `backend/requirements.txt` — none currently is. Adding one is
+   a new dependency: per `.claude/STOP_RULES.md` rule 3, **stop and ask before adding it** (e.g.
+   `slowapi`). Don't assume.
+2. Apply a rate limit to `POST /api/v1/identity/orgs` only — a reasonable low ceiling
+   (e.g. 10/hour per IP) since it's a bootstrap/dev path, not a high-traffic endpoint.
+3. Add a test asserting the limit actually triggers a 429 after the threshold.
+4. Run `pytest backend/tests/api backend/tests/rls -q` — show the founder real output.
+5. Do NOT touch: MFA, dual-log enforcement, mypy hard-gate, any other module. One task at a time.
 
-`POST /api/v1/identity/orgs` (bootstrap) returns **HTTP 500** instead of the documented
-**409 `slug_conflict`** when the same slug is submitted twice.
-
-Root cause (already diagnosed in `test_reports/iteration_1.json`, which you should read first):
-`IdentityService.create_organization` in `backend/app/modules/identity/service.py` checks for
-a duplicate slug using `service_role_session()` — but the router (`identity/router.py::bootstrap_org`)
-wraps the whole call in `tenancy(new_org_id)` for a brand-new org id. Re-verify this is still the
-live bug (it may have shifted slightly) before patching — read both files, don't assume the old
-diagnosis is 100% still accurate line-for-line.
-
-## Steps
-1. Read `backend/app/modules/identity/service.py::create_organization` and
-   `backend/app/modules/identity/router.py::bootstrap_org`. Confirm the exact failure path.
-2. Fix so a duplicate slug returns `409` with `{"error": "domain_error", "code": "slug_conflict"}`
-   (matches the `DomainError` pattern already used elsewhere in this file — see
-   `app/core/errors.py` for how `DomainError` maps to HTTP responses).
-3. Add a regression test in `backend/tests/api/test_identity_api.py`: bootstrap the same slug
-   twice, assert the second call is 409 with code `slug_conflict`, not 500.
-4. Run `pytest backend/tests/api backend/tests/rls -q` — show the founder the output. All must
-   pass, including the new test.
-5. Do NOT touch: rate limiting, dual-log enforcement, any other module, any migration. Those are
-   separate, later tasks — one task at a time.
-
-**Definition of done:** the new regression test passes, the full existing suite
-(`tests/api`, `tests/rls`, `tests/integration`) still passes, and you show the founder real
-pytest output (not a summary claim).
+**Definition of done:** the new test passes, the full existing suite still passes, founder
+sees real pytest output.
 
 **If anything is unclear:** follow `.claude/STOP_RULES.md` — stop and ask one question.
 
 ---
 ### Also flagged, NOT this task, needs its own future task:
-- `frontend/yarn.lock` should be committed (currently missing from the repo, only exists after
-  running `yarn install` locally; CI's `ci.yml` already assumes it exists for caching).
-- `.claude/skills/new-migration.md` and `.claude/skills/new-migration/SKILL.md` — two skills
-  with the same name, different content. Founder should pick one and delete the other.
+- MFA enforcement flag per org (E1 tail).
+- Device/session listing UI (E1 tail).
+- mypy promoted from advisory (`|| true` in `ci.yml`) to hard-gate (E1 tail, pre-declared debt
+  DEB-S1-002).
+- RBAC `dual_log=True` enforcement for `org.member.role` / `org.member.remove` — currently
+  metadata-only, no second-actor witness recorded or checked. Likely blocked on E2's audit
+  schema (`AuditEntry`/`OutboxEvent` exist as models but have no migration/router/service yet).
+- `deploy.yml`'s migrate step is a placeholder (`echo "Would run: ..."`) — not real. Needs a
+  decision on when staging actually gets applied before this matters.
