@@ -4,10 +4,16 @@
 acceptance criteria (per `docs/product/31-execution-plan-v1.0.md`, DOC-131) is met and was
 actually shown working — not when someone says "basically done."
 
-_Last updated: 2026-07-15_
+_Last updated: 2026-07-19_
 
-**Totals: 25 of ~95 tracked items checked. Sprint 1 of 18 closed. CI is genuinely green
-for the first time.**
+**Totals: 26 of ~95 tracked items checked. Sprint 1 of 18 closed, Sprint 2 (E2) underway.
+CI is genuinely green.**
+
+**Correction (2026-07-19):** every E2 item below previously said "model exists, unwired" as
+if the database table didn't exist yet. That was wrong — migration 0002 already created the
+*entire* core ontology schema (Owner, Contact, Lead, Deal, Offer, Conversation, Message,
+Campaign, Underwriting Run, Comp, Audit, Outbox), RLS included. The real gap was only ever
+the router/service layer on top. Line items below now reflect that.
 
 ---
 
@@ -64,16 +70,17 @@ for the first time.**
 ---
 
 ## E2 — Ontology core (Sprint 2–4)
-- [ ] Outbox model wired: dispatcher process publishing `events.outbox` rows
-- [ ] Audit schema live: services actually writing to `audit.log` on privileged actions
-- [ ] Owner model: migration + router + service (model exists, unwired)
-- [ ] Contact + ContactChannel + ConsentRecord: migration + router + service (models exist, unwired)
-- [ ] Lead model + full state machine service (new→...→closed, `transition_lead()` as sole mutator)
-- [ ] Deal + Offer: migration + router + service (models exist, unwired)
-- [ ] BuyBox: migration + router + service (model exists, unwired)
-- [ ] MotivationSignal: migration + router + service (model exists, unwired)
-- [ ] MetroCoverage: migration + router + service (model exists, unwired)
-- [ ] RLS adversarial suite extended to cover every new tenant table above
+- [x] **Owner: router + service (create/list/get), with RLS adversarial case + API tests.**
+  Schema already existed (migration 0002); this wired the logic on top. Verified live
+  end-to-end (real org → real owner → real list) and in real CI.
+- [ ] Outbox: dispatcher process publishing `events.outbox` rows (schema exists, unwired)
+- [ ] Audit: services actually writing to `audit.log` on privileged actions (schema exists, unwired)
+- [ ] Contact + ContactChannel + ConsentRecord: router + service (schema exists, unwired)
+- [ ] Lead: router + full state machine service (schema exists, unwired)
+- [ ] Deal + Offer: router + service (schema exists, unwired)
+- [ ] BuyBox: router + service (schema exists, unwired)
+- [ ] MotivationSignal: router + service (schema exists, unwired)
+- [ ] MetroCoverage: router + service (schema exists, unwired)
 
 ---
 

@@ -2,22 +2,19 @@
 
 **Only one task lives here at a time. The founder (or the Architect session) sets it.**
 
-## Status update before the new task
+## Status update
 
-Previous task (rate limiting on the public bootstrap endpoint) is **done** — hand-rolled
-in-memory limiter, no new dependency, regression test passes, confirmed green in real CI
-(run 29411451384). See `.claude/CURRENT_STATE.md` for full detail.
+Owner CRUD (create/list/get) is done — router + service, RLS-tested, verified live and in
+real CI. See `.claude/CURRENT_STATE.md` for full detail. Also corrected `PROGRESS.md`: the
+whole E2 database schema already existed (migration 0002) — what's missing on every
+remaining E2 item is just the router/service layer, not the database.
 
 ## No task currently assigned
 
-Nothing is queued right now. The remaining open E1-tail items (see
-`.claude/PROGRESS.md` → "Sprint 2 — E1 tail") are:
-- MFA enforcement flag per org
-- Device/session listing UI
-- mypy promoted from advisory to hard-gate in CI
-- Bootstrap-org: replace dev synthetic subject_id with real WorkOS provisioning webhook
-- RBAC `dual_log=True` enforcement (likely blocked on E2's audit schema landing first)
+Natural next candidates, same pattern as Owner (schema exists, needs router + service):
+- Contact + ContactChannel + ConsentRecord
+- Lead (needs the state-machine service, not just CRUD — more involved)
+- BuyBox
+- MotivationSignal
 
-**Founder: tell the Architect session which of these (or something else) is next**, or say
-"pick the next one" and it'll propose the smallest, most self-contained option the way it did
-for rate limiting — with reasoning, not just a pick.
+**Founder: say which one (or say "pick the next one" and it'll be proposed with reasoning).**
