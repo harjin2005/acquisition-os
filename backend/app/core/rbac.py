@@ -68,6 +68,8 @@ register_permission(Permission("property.read", Role.VIEWER, "Read properties (s
 register_permission(
     Permission("property.write", Role.MEMBER, "Create/update properties (stub)")
 )
+register_permission(Permission("owner.read", Role.VIEWER, "Read owners"))
+register_permission(Permission("owner.write", Role.MEMBER, "Create/update owners"))
 register_permission(
     Permission(
         "admin.impersonate",

@@ -43,7 +43,13 @@ class AuditEntry(IdMixin, TenantMixin, Base):
     target_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )
-    details: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    # Python attribute is `details` (SQLAlchemy reserves `metadata` on the
+    # Declarative API), but the actual DB column — created by migration
+    # 0002 before this rename — is still named `metadata`. Mapping the name
+    # explicitly here avoids a needless migration for an unused, empty table.
+    details: Mapped[dict] = mapped_column(
+        "metadata", JSONB, nullable=False, default=dict
+    )
     dual_witness_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), nullable=True
     )

@@ -1,7 +1,7 @@
-"""Ontology stub router — Sprint 1 keeps only a minimal property read/create
-so the RLS suite can drive a licensed-schema tenant table end-to-end.
+"""Ontology router — thin. Business logic for Owner is in `service.py`;
+Property stays inline as the original Sprint-1 RLS-proving stub.
 
-Full ontology surface (leads, owners, deals, offers) lands in E2.
+Full ontology surface (leads, deals, offers) lands incrementally in E2.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from sqlalchemy import select
 from app.core.rbac import Principal, require_permission
 from app.core.tenancy import app_session, tenancy
 from app.modules.ontology.models import Property
+from app.modules.ontology.service import OwnerService, to_owner_dict
 
 
 router = APIRouter(prefix="/ontology", tags=["ontology"])
@@ -84,3 +85,53 @@ def list_properties(
                 }
                 for p in rows
             ]
+
+
+# ---------------------------------------------------------------------------
+# Owner
+# ---------------------------------------------------------------------------
+
+
+class OwnerIn(BaseModel):
+    display_name: str = Field(min_length=1, max_length=200)
+    entity_type: str = Field(
+        default="unknown", pattern="^(person|entity|trust|unknown)$"
+    )
+    mailing_address: str | None = Field(default=None, max_length=400)
+
+
+@router.post("/owners", status_code=201)
+def create_owner(
+    body: OwnerIn = Body(...),
+    principal: Principal = Depends(require_permission("owner.write")),
+) -> dict:
+    with tenancy(principal.org_id, principal.actor_id):
+        with app_session() as db:
+            owner = OwnerService(db).create_owner(
+                org_id=uuid.UUID(principal.org_id),
+                display_name=body.display_name,
+                entity_type=body.entity_type,
+                mailing_address=body.mailing_address,
+            )
+            return to_owner_dict(owner)
+
+
+@router.get("/owners")
+def list_owners(
+    principal: Principal = Depends(require_permission("owner.read")),
+) -> list[dict]:
+    with tenancy(principal.org_id, principal.actor_id):
+        with app_session() as db:
+            owners = OwnerService(db).list_owners(uuid.UUID(principal.org_id))
+            return [to_owner_dict(o) for o in owners]
+
+
+@router.get("/owners/{owner_id}")
+def get_owner(
+    owner_id: uuid.UUID,
+    principal: Principal = Depends(require_permission("owner.read")),
+) -> dict:
+    with tenancy(principal.org_id, principal.actor_id):
+        with app_session() as db:
+            owner = OwnerService(db).get_owner(uuid.UUID(principal.org_id), owner_id)
+            return to_owner_dict(owner)

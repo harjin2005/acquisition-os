@@ -26,7 +26,7 @@ from app.core.tenancy import (  # noqa: E402
     service_role_session,
 )
 from app.modules.identity.models import Member, Organization  # noqa: E402
-from app.modules.ontology.models import Property  # noqa: E402
+from app.modules.ontology.models import Owner, Property  # noqa: E402
 
 
 @pytest.fixture(scope="session")
@@ -43,7 +43,8 @@ def clean_db(_pg_ready) -> Iterator[None]:
     with engine.begin() as conn:
         conn.execute(
             text(
-                "TRUNCATE licensed.property, core.invite, core.member, core.organization CASCADE"
+                "TRUNCATE licensed.property, core.owner, core.invite, core.member, "
+                "core.organization CASCADE"
             )
         )
     yield
@@ -96,6 +97,8 @@ def two_orgs(clean_db) -> tuple[uuid.UUID, uuid.UUID]:
                     state="TX",
                     postal_code="75002",
                 ),
+                Owner(id=uuid.uuid4(), org_id=org_a, display_name="Alpha Owner"),
+                Owner(id=uuid.uuid4(), org_id=org_b, display_name="Bravo Owner"),
             ]
         )
     return org_a, org_b

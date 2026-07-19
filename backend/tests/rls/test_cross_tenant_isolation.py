@@ -19,7 +19,7 @@ from app.core.tenancy import (
     tenancy,
 )
 from app.modules.identity.models import Member, Organization
-from app.modules.ontology.models import Property
+from app.modules.ontology.models import Owner, Property
 
 
 def test_missing_tenancy_context_denies_query(clean_db):
@@ -35,6 +35,16 @@ def test_org_a_cannot_read_org_b_property(two_orgs):
             rows = db.execute(select(Property)).scalars().all()
             assert len(rows) == 1
             assert rows[0].org_id == org_a
+
+
+def test_org_a_cannot_read_org_b_owner(two_orgs):
+    org_a, org_b = two_orgs
+    with tenancy(org_a):
+        with app_session() as db:
+            rows = db.execute(select(Owner)).scalars().all()
+            assert len(rows) == 1
+            assert rows[0].org_id == org_a
+            assert rows[0].display_name == "Alpha Owner"
 
 
 def test_org_a_cannot_read_org_b_member(two_orgs):
