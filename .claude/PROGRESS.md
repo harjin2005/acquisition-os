@@ -6,8 +6,7 @@ actually shown working — not when someone says "basically done."
 
 _Last updated: 2026-07-19_
 
-**Totals: 26 of ~95 tracked items checked. Sprint 1 of 18 closed, Sprint 2 (E2) underway.
-CI is genuinely green.**
+**Totals: 27 of ~95 tracked items checked. Sprint 1 of 18 closed, Sprint 2 (E2) underway.**
 
 **Correction (2026-07-19):** every E2 item below previously said "model exists, unwired" as
 if the database table didn't exist yet. That was wrong — migration 0002 already created the
@@ -73,9 +72,13 @@ the router/service layer on top. Line items below now reflect that.
 - [x] **Owner: router + service (create/list/get), with RLS adversarial case + API tests.**
   Schema already existed (migration 0002); this wired the logic on top. Verified live
   end-to-end (real org → real owner → real list) and in real CI.
+- [x] **Contact + ContactChannel + ConsentRecord: router + service, with RLS adversarial
+  cases + API tests.** Every channel gets a matching consent record at creation, always
+  `consent_unknown` — enforced in code, verified live via curl. CI confirmation pending —
+  GitHub's API was down (503) when this was pushed; local verification (83/83 passed,
+  import-linter clean) was thorough, real-CI check to follow once GitHub recovers.
 - [ ] Outbox: dispatcher process publishing `events.outbox` rows (schema exists, unwired)
 - [ ] Audit: services actually writing to `audit.log` on privileged actions (schema exists, unwired)
-- [ ] Contact + ContactChannel + ConsentRecord: router + service (schema exists, unwired)
 - [ ] Lead: router + full state machine service (schema exists, unwired)
 - [ ] Deal + Offer: router + service (schema exists, unwired)
 - [ ] BuyBox: router + service (schema exists, unwired)

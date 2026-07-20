@@ -4,17 +4,17 @@
 
 ## Status update
 
-Owner CRUD (create/list/get) is done — router + service, RLS-tested, verified live and in
-real CI. See `.claude/CURRENT_STATE.md` for full detail. Also corrected `PROGRESS.md`: the
-whole E2 database schema already existed (migration 0002) — what's missing on every
-remaining E2 item is just the router/service layer, not the database.
+Contact + ContactChannel + ConsentRecord done — router + service, RLS-tested, verified
+live via curl. 83/83 tests pass locally, import-linter clean. **One open item:** GitHub's
+API was down (503) when this was pushed, so the real-CI green check hasn't been confirmed
+yet — check `gh run list --workflow=ci.yml --limit 3` next session and confirm before
+trusting this as fully closed out.
 
 ## No task currently assigned
 
-Natural next candidates, same pattern as Owner (schema exists, needs router + service):
-- Contact + ContactChannel + ConsentRecord
-- Lead (needs the state-machine service, not just CRUD — more involved)
-- BuyBox
-- MotivationSignal
+Natural next candidates (same pattern: schema exists, needs router + service):
+- BuyBox (small, self-contained)
+- MotivationSignal (small, self-contained)
+- Lead (bigger — needs the state-machine service, not just CRUD)
 
-**Founder: say which one (or say "pick the next one" and it'll be proposed with reasoning).**
+**Founder: say which one, or say "pick the next one."**
