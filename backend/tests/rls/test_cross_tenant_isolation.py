@@ -19,7 +19,13 @@ from app.core.tenancy import (
     tenancy,
 )
 from app.modules.identity.models import Member, Organization
-from app.modules.ontology.models import Owner, Property
+from app.modules.ontology.models import (
+    Contact,
+    ContactChannel,
+    ConsentRecord,
+    Owner,
+    Property,
+)
 
 
 def test_missing_tenancy_context_denies_query(clean_db):
@@ -45,6 +51,35 @@ def test_org_a_cannot_read_org_b_owner(two_orgs):
             assert len(rows) == 1
             assert rows[0].org_id == org_a
             assert rows[0].display_name == "Alpha Owner"
+
+
+def test_org_a_cannot_read_org_b_contact(two_orgs):
+    org_a, org_b = two_orgs
+    with tenancy(org_a):
+        with app_session() as db:
+            rows = db.execute(select(Contact)).scalars().all()
+            assert len(rows) == 1
+            assert rows[0].org_id == org_a
+            assert rows[0].display_name == "Alpha Contact"
+
+
+def test_org_a_cannot_read_org_b_contact_channel(two_orgs):
+    org_a, org_b = two_orgs
+    with tenancy(org_a):
+        with app_session() as db:
+            rows = db.execute(select(ContactChannel)).scalars().all()
+            assert len(rows) == 1
+            assert rows[0].org_id == org_a
+            assert rows[0].address == "+15550001111"
+
+
+def test_org_a_cannot_read_org_b_consent_record(two_orgs):
+    org_a, org_b = two_orgs
+    with tenancy(org_a):
+        with app_session() as db:
+            rows = db.execute(select(ConsentRecord)).scalars().all()
+            assert len(rows) == 1
+            assert rows[0].org_id == org_a
 
 
 def test_org_a_cannot_read_org_b_member(two_orgs):

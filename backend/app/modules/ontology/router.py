@@ -15,7 +15,13 @@ from sqlalchemy import select
 from app.core.rbac import Principal, require_permission
 from app.core.tenancy import app_session, tenancy
 from app.modules.ontology.models import Property
-from app.modules.ontology.service import OwnerService, to_owner_dict
+from app.modules.ontology.service import (
+    ContactService,
+    OwnerService,
+    to_channel_dict,
+    to_contact_dict,
+    to_owner_dict,
+)
 
 
 router = APIRouter(prefix="/ontology", tags=["ontology"])
@@ -135,3 +141,93 @@ def get_owner(
         with app_session() as db:
             owner = OwnerService(db).get_owner(uuid.UUID(principal.org_id), owner_id)
             return to_owner_dict(owner)
+
+
+# ---------------------------------------------------------------------------
+# Contact + ContactChannel + ConsentRecord
+# ---------------------------------------------------------------------------
+
+
+class ContactIn(BaseModel):
+    display_name: str = Field(min_length=1, max_length=200)
+    role: str = Field(default="owner_of_record", max_length=32)
+    owner_id: uuid.UUID | None = Field(default=None)
+
+
+class ChannelIn(BaseModel):
+    channel: str = Field(pattern="^(sms|voice|email|mail)$")
+    address: str = Field(min_length=1, max_length=400)
+    provenance: str = Field(default="unknown", max_length=64)
+
+
+@router.post("/contacts", status_code=201)
+def create_contact(
+    body: ContactIn = Body(...),
+    principal: Principal = Depends(require_permission("contact.write")),
+) -> dict:
+    with tenancy(principal.org_id, principal.actor_id):
+        with app_session() as db:
+            contact = ContactService(db).create_contact(
+                org_id=uuid.UUID(principal.org_id),
+                display_name=body.display_name,
+                role=body.role,
+                owner_id=body.owner_id,
+            )
+            return to_contact_dict(contact)
+
+
+@router.get("/contacts")
+def list_contacts(
+    principal: Principal = Depends(require_permission("contact.read")),
+) -> list[dict]:
+    with tenancy(principal.org_id, principal.actor_id):
+        with app_session() as db:
+            contacts = ContactService(db).list_contacts(uuid.UUID(principal.org_id))
+            return [to_contact_dict(c) for c in contacts]
+
+
+@router.get("/contacts/{contact_id}")
+def get_contact(
+    contact_id: uuid.UUID,
+    principal: Principal = Depends(require_permission("contact.read")),
+) -> dict:
+    with tenancy(principal.org_id, principal.actor_id):
+        with app_session() as db:
+            contact = ContactService(db).get_contact(
+                uuid.UUID(principal.org_id), contact_id
+            )
+            return to_contact_dict(contact)
+
+
+@router.post("/contacts/{contact_id}/channels", status_code=201)
+def add_channel(
+    contact_id: uuid.UUID,
+    body: ChannelIn = Body(...),
+    principal: Principal = Depends(require_permission("contact.write")),
+) -> dict:
+    with tenancy(principal.org_id, principal.actor_id):
+        with app_session() as db:
+            svc = ContactService(db)
+            ch = svc.add_channel(
+                org_id=uuid.UUID(principal.org_id),
+                contact_id=contact_id,
+                channel=body.channel,
+                address=body.address,
+                provenance=body.provenance,
+            )
+            # Channel was just created — consent record is a matching fresh
+            # `consent_unknown` row (see ContactService.add_channel).
+            return to_channel_dict(ch, None)
+
+
+@router.get("/contacts/{contact_id}/channels")
+def list_channels(
+    contact_id: uuid.UUID,
+    principal: Principal = Depends(require_permission("contact.read")),
+) -> list[dict]:
+    with tenancy(principal.org_id, principal.actor_id):
+        with app_session() as db:
+            pairs = ContactService(db).list_channels(
+                uuid.UUID(principal.org_id), contact_id
+            )
+            return [to_channel_dict(ch, consent) for ch, consent in pairs]

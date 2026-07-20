@@ -25,8 +25,16 @@ from app.core.tenancy import (  # noqa: E402
     get_service_engine,
     service_role_session,
 )
+from datetime import datetime, timezone  # noqa: E402
+
 from app.modules.identity.models import Member, Organization  # noqa: E402
-from app.modules.ontology.models import Owner, Property  # noqa: E402
+from app.modules.ontology.models import (  # noqa: E402
+    Contact,
+    ContactChannel,
+    ConsentRecord,
+    Owner,
+    Property,
+)
 
 
 @pytest.fixture(scope="session")
@@ -43,8 +51,9 @@ def clean_db(_pg_ready) -> Iterator[None]:
     with engine.begin() as conn:
         conn.execute(
             text(
-                "TRUNCATE licensed.property, core.owner, core.invite, core.member, "
-                "core.organization CASCADE"
+                "TRUNCATE licensed.property, core.owner, core.contact, "
+                "core.contact_channel, core.consent_record, core.invite, "
+                "core.member, core.organization CASCADE"
             )
         )
     yield
@@ -58,6 +67,10 @@ def two_orgs(clean_db) -> tuple[uuid.UUID, uuid.UUID]:
     """
     org_a = uuid.uuid4()
     org_b = uuid.uuid4()
+    contact_a = uuid.uuid4()
+    contact_b = uuid.uuid4()
+    channel_a = uuid.uuid4()
+    channel_b = uuid.uuid4()
     with service_role_session() as db:
         db.add_all(
             [
@@ -99,6 +112,53 @@ def two_orgs(clean_db) -> tuple[uuid.UUID, uuid.UUID]:
                 ),
                 Owner(id=uuid.uuid4(), org_id=org_a, display_name="Alpha Owner"),
                 Owner(id=uuid.uuid4(), org_id=org_b, display_name="Bravo Owner"),
+            ]
+        )
+        # Contact -> ContactChannel -> ConsentRecord is a 3-level FK chain;
+        # flushing each stage explicitly avoids relying on SQLAlchemy's
+        # batched-insert ordering across three dependent tables at once.
+        db.add_all(
+            [
+                Contact(id=contact_a, org_id=org_a, display_name="Alpha Contact"),
+                Contact(id=contact_b, org_id=org_b, display_name="Bravo Contact"),
+            ]
+        )
+        db.flush()
+        db.add_all(
+            [
+                ContactChannel(
+                    id=channel_a,
+                    org_id=org_a,
+                    contact_id=contact_a,
+                    channel="sms",
+                    address="+15550001111",
+                ),
+                ContactChannel(
+                    id=channel_b,
+                    org_id=org_b,
+                    contact_id=contact_b,
+                    channel="sms",
+                    address="+15550002222",
+                ),
+            ]
+        )
+        db.flush()
+        db.add_all(
+            [
+                ConsentRecord(
+                    id=uuid.uuid4(),
+                    org_id=org_a,
+                    channel_id=channel_a,
+                    state="consent_unknown",
+                    recorded_at=datetime.now(timezone.utc),
+                ),
+                ConsentRecord(
+                    id=uuid.uuid4(),
+                    org_id=org_b,
+                    channel_id=channel_b,
+                    state="consent_unknown",
+                    recorded_at=datetime.now(timezone.utc),
+                ),
             ]
         )
     return org_a, org_b
